@@ -31,7 +31,6 @@ import org.apache.spark.sql.catalyst.util.TypeUtils
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 
-
 /**
  * A base class for generated/interpreted predicate
  */
@@ -140,8 +139,8 @@ trait PredicateHelper extends AliasHelper with Logging {
       case l: LeafNode if exp.references.subsetOf(l.outputSet) =>
         Some((exp, l))
       case other =>
-        other.children.flatMap {
-          child => if (exp.references.subsetOf(child.outputSet)) {
+        other.children.flatMap { child =>
+          if (exp.references.subsetOf(child.outputSet)) {
             findExpressionAndTrackLineageDown(exp, child)
           } else {
             None
@@ -165,7 +164,8 @@ trait PredicateHelper extends AliasHelper with Logging {
    * exprs = [a, b, c, d, e, f], op = And, returns ((a And b) And (c And d)) And (e And f)
    */
   protected def buildBalancedPredicate(
-      expressions: Seq[Expression], op: (Expression, Expression) => Expression): Expression = {
+      expressions: Seq[Expression],
+      op: (Expression, Expression) => Expression): Expression = {
     assert(expressions.nonEmpty)
     var currentResult = expressions
     while (currentResult.size != 1) {
@@ -303,7 +303,10 @@ trait PredicateHelper extends AliasHelper with Logging {
   since = "1.0.0",
   group = "predicate_funcs")
 case class Not(child: Expression)
-  extends UnaryExpression with Predicate with ImplicitCastInputTypes with NullIntolerant {
+    extends UnaryExpression
+    with Predicate
+    with ImplicitCastInputTypes
+    with NullIntolerant {
 
   override def toString: String = s"NOT $child"
 
@@ -333,7 +336,8 @@ case class Not(child: Expression)
  * Evaluates to `true` if `values` are returned in `query`'s result set.
  */
 case class InSubquery(values: Seq[Expression], query: ListQuery)
-  extends Predicate with Unevaluable {
+    extends Predicate
+    with Unevaluable {
 
   @transient private lazy val value: Expression = if (values.length > 1) {
     CreateNamedStruct(values.zipWithIndex.flatMap {
@@ -348,8 +352,7 @@ case class InSubquery(values: Seq[Expression], query: ListQuery)
 
   override def checkInputDataTypes(): TypeCheckResult = {
     if (values.length != query.childOutputs.length) {
-      TypeCheckResult.TypeCheckFailure(
-        s"""
+      TypeCheckResult.TypeCheckFailure(s"""
            |The number of columns in the left hand side of an IN subquery does not match the
            |number of columns in the output of subquery.
            |#columns in left hand side: ${values.length}.
@@ -359,15 +362,16 @@ case class InSubquery(values: Seq[Expression], query: ListQuery)
            |Right side columns:
            |[${query.childOutputs.map(_.sql).mkString(", ")}].""".stripMargin)
     } else if (!DataType.equalsStructurally(
-      query.dataType, value.dataType, ignoreNullability = true)) {
+                 query.dataType,
+                 value.dataType,
+                 ignoreNullability = true)) {
 
       val mismatchedColumns = values.zip(query.childOutputs).flatMap {
         case (l, r) if l.dataType != r.dataType =>
           Seq(s"(${l.sql}:${l.dataType.catalogString}, ${r.sql}:${r.dataType.catalogString})")
         case _ => None
       }
-      TypeCheckResult.TypeCheckFailure(
-        s"""
+      TypeCheckResult.TypeCheckFailure(s"""
            |The data type of one or more elements in the left hand side of an IN subquery
            |is not compatible with the data type of the output of the subquery
            |Mismatched columns:
@@ -386,10 +390,10 @@ case class InSubquery(values: Seq[Expression], query: ListQuery)
   override def toString: String = s"$value IN ($query)"
   override def sql: String = s"(${value.sql} IN (${query.sql}))"
 
-  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): InSubquery =
+  override protected def withNewChildrenInternal(
+      newChildren: IndexedSeq[Expression]): InSubquery =
     copy(values = newChildren.dropRight(1), query = newChildren.last.asInstanceOf[ListQuery])
 }
-
 
 /**
  * Evaluates to `true` if `list` contains `value`.
@@ -401,7 +405,8 @@ case class InSubquery(values: Seq[Expression], query: ListQuery)
     Arguments:
       * expr1, expr2, expr3, ... - the arguments must be same type.
   """,
-  examples = """
+  examples =
+    """
     Examples:
       > SELECT 1 _FUNC_(1, 2, 3);
        true
@@ -420,11 +425,12 @@ case class In(value: Expression, list: Seq[Expression]) extends Predicate {
   require(list != null, "list should not be null")
 
   override def checkInputDataTypes(): TypeCheckResult = {
-    val mismatchOpt = list.find(l => !DataType.equalsStructurally(l.dataType, value.dataType,
-      ignoreNullability = true))
+    val mismatchOpt = list.find(l =>
+      !DataType.equalsStructurally(l.dataType, value.dataType, ignoreNullability = true))
     if (mismatchOpt.isDefined) {
-      TypeCheckResult.TypeCheckFailure(s"Arguments must be same type but were: " +
-        s"${value.dataType.catalogString} != ${mismatchOpt.get.dataType.catalogString}")
+      TypeCheckResult.TypeCheckFailure(
+        s"Arguments must be same type but were: " +
+          s"${value.dataType.catalogString} != ${mismatchOpt.get.dataType.catalogString}")
     } else {
       TypeUtils.checkForOrderingExpr(value.dataType, s"function $prettyName")
     }
@@ -478,8 +484,7 @@ case class In(value: Expression, list: Seq[Expression]) extends Predicate {
     val valueArg = ctx.freshName("valueArg")
     // All the blocks are meant to be inside a do { ... } while (false); loop.
     // The evaluation of variables can be stopped when we find a matching value.
-    val listCode = listGen.map(x =>
-      s"""
+    val listCode = listGen.map(x => s"""
          |${x.code}
          |if (${x.isNull}) {
          |  $tmpResult = $HAS_NULL; // ${ev.isNull} = true;
@@ -494,8 +499,7 @@ case class In(value: Expression, list: Seq[Expression]) extends Predicate {
       funcName = "valueIn",
       extraArguments = (javaDataType, valueArg) :: (CodeGenerator.JAVA_BYTE, tmpResult) :: Nil,
       returnType = CodeGenerator.JAVA_BYTE,
-      makeSplitFunction = body =>
-        s"""
+      makeSplitFunction = body => s"""
            |do {
            |  $body
            |} while (false);
@@ -510,8 +514,7 @@ case class In(value: Expression, list: Seq[Expression]) extends Predicate {
          """.stripMargin
       }.mkString("\n"))
 
-    ev.copy(code =
-      code"""
+    ev.copy(code = code"""
          |${valueGen.code}
          |byte $tmpResult = $HAS_NULL;
          |if (!${valueGen.isNull}) {
@@ -591,18 +594,21 @@ case class InSet(child: Expression, hset: Set[Any]) extends UnaryExpression with
   }
 
   private def genCodeWithSet(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    nullSafeCodeGen(ctx, ev, c => {
-      val setTerm = ctx.addReferenceObj("set", set)
-      val setIsNull = if (hasNull) {
-        s"${ev.isNull} = !${ev.value};"
-      } else {
-        ""
-      }
-      s"""
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      c => {
+        val setTerm = ctx.addReferenceObj("set", set)
+        val setIsNull = if (hasNull) {
+          s"${ev.isNull} = !${ev.value};"
+        } else {
+          ""
+        }
+        s"""
          |${ev.value} = $setTerm.contains($c);
          |$setIsNull
        """.stripMargin
-    })
+      })
   }
 
   // spark.sql.optimizer.inSetSwitchThreshold has an appropriate upper limit,
@@ -611,8 +617,7 @@ case class InSet(child: Expression, hset: Set[Any]) extends UnaryExpression with
     val caseValuesGen = hset.filter(_ != null).map(Literal(_).genCode(ctx))
     val valueGen = child.genCode(ctx)
 
-    val caseBranches = caseValuesGen.map(literal =>
-      code"""
+    val caseBranches = caseValuesGen.map(literal => code"""
         case ${literal.value}:
           ${ev.value} = true;
           break;
@@ -630,8 +635,7 @@ case class InSet(child: Expression, hset: Set[Any]) extends UnaryExpression with
       s"${ev.isNull} = $hasNull;"
     }
 
-    ev.copy(code =
-      code"""
+    ev.copy(code = code"""
         ${valueGen.code}
         ${CodeGenerator.JAVA_BOOLEAN} ${ev.isNull} = ${valueGen.isNull};
         ${CodeGenerator.JAVA_BOOLEAN} ${ev.value} = false;
@@ -651,7 +655,8 @@ case class InSet(child: Expression, hset: Set[Any]) extends UnaryExpression with
     s"($valueSQL IN ($listSQL))"
   }
 
-  override protected def withNewChildInternal(newChild: Expression): InSet = copy(child = newChild)
+  override protected def withNewChildInternal(newChild: Expression): InSet =
+    copy(child = newChild)
 }
 
 @ExpressionDescription(
@@ -689,7 +694,7 @@ case class And(left: Expression, right: Expression) extends BinaryOperator with 
   override def eval(input: InternalRow): Any = {
     val input1 = left.eval(input)
     if (input1 == false) {
-       false
+      false
     } else {
       val input2 = right.eval(input)
       if (input2 == false) {
@@ -710,14 +715,16 @@ case class And(left: Expression, right: Expression) extends BinaryOperator with 
 
     // The result should be `false`, if any of them is `false` whenever the other is null or not.
     if (!left.nullable && !right.nullable) {
-      ev.copy(code = code"""
+      ev.copy(
+        code = code"""
         ${eval1.code}
         boolean ${ev.value} = false;
 
         if (${eval1.value}) {
           ${eval2.code}
           ${ev.value} = ${eval2.value};
-        }""", isNull = FalseLiteral)
+        }""",
+        isNull = FalseLiteral)
     } else {
       ev.copy(code = code"""
         ${eval1.code}
@@ -799,14 +806,16 @@ case class Or(left: Expression, right: Expression) extends BinaryOperator with P
     // The result should be `true`, if any of them is `true` whenever the other is null or not.
     if (!left.nullable && !right.nullable) {
       ev.isNull = FalseLiteral
-      ev.copy(code = code"""
+      ev.copy(
+        code = code"""
         ${eval1.code}
         boolean ${ev.value} = true;
 
         if (!${eval1.value}) {
           ${eval2.code}
           ${ev.value} = ${eval2.value};
-        }""", isNull = FalseLiteral)
+        }""",
+        isNull = FalseLiteral)
     } else {
       ev.copy(code = code"""
         ${eval1.code}
@@ -830,7 +839,6 @@ case class Or(left: Expression, right: Expression) extends BinaryOperator with P
   override protected def withNewChildrenInternal(newLeft: Expression, newRight: Expression): Or =
     copy(left = newLeft, right = newRight)
 }
-
 
 abstract class BinaryComparison extends BinaryOperator with Predicate {
 
@@ -861,11 +869,9 @@ abstract class BinaryComparison extends BinaryOperator with Predicate {
   protected lazy val ordering: Ordering[Any] = TypeUtils.getInterpretedOrdering(left.dataType)
 }
 
-
 object BinaryComparison {
   def unapply(e: BinaryComparison): Option[(Expression, Expression)] = Some((e.left, e.right))
 }
-
 
 /** An extractor that matches both standard 3VL equality and null-safe equality. */
 object Equality {
@@ -880,7 +886,8 @@ object Equality {
 // in equality comparison
 @ExpressionDescription(
   usage = "expr1 _FUNC_ expr2 - Returns true if `expr1` equals `expr2`, or false otherwise.",
-  arguments = """
+  arguments =
+    """
     Arguments:
       * expr1, expr2 - the two expressions must be same type or can be casted to a common type,
           and must be a type that can be used in equality comparison. Map type is not supported.
@@ -899,8 +906,7 @@ object Equality {
   """,
   since = "1.0.0",
   group = "predicate_funcs")
-case class EqualTo(left: Expression, right: Expression)
-    extends BinaryComparison with NullIntolerant {
+case class EqualTo(left: Expression, right: Expression) extends BinaryComparison {
 
   override def symbol: String = "="
 
@@ -911,14 +917,70 @@ case class EqualTo(left: Expression, right: Expression)
   // | FALSE   | FALSE   | TRUE    | UNKNOWN |
   // | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN |
   // +---------+---------+---------+---------+
+
+  /**
+   * Short hand for generating binary evaluation code for EqualTo.
+   * If both of sub-expressions is null, the result of this computation is assumed to be true
+   * If one of sub-expressions is null and the other is not null, the result
+   * of this computation is assumed to be false
+   *
+   * @param f function that accepts the 2 non-null evaluation result names of children
+   *          and returns Java code to compute the output.
+   */
+  protected def defineCodeGenForEqualTo(
+      ctx: CodegenContext,
+      ev: ExprCode,
+      f: (String, String) => String): ExprCode = {
+    nullSafeCodeGenForEqualTo(ctx, ev, (eval1, eval2) => {
+      s"${ev.value} = ${f(eval1, eval2)};"
+    })
+  }
+
+  /**
+   * Short hand for generating binary evaluation code for EqualTo.
+   * If both of sub-expressions is null, the result of this computation is assumed to be true
+   * If one of sub-expressions is null and the other is not null, the result
+   * of this computation is assumed to be false
+   *
+   * @param f function that accepts the 2 non-null evaluation result names of children
+   *          and returns Java code to compute the output.
+   */
+  protected def nullSafeCodeGenForEqualTo(
+      ctx: CodegenContext,
+      ev: ExprCode,
+      f: (String, String) => String): ExprCode = {
+    val leftGen = left.genCode(ctx)
+    val rightGen = right.genCode(ctx)
+    val resultCode = s"""
+           if ( ${leftGen.isNull} || ${rightGen.isNull} )
+           {
+              if ( ${leftGen.isNull} && ${rightGen.isNull} )
+                  ${ev.value} = true;
+              else
+                  ${ev.value} = false;
+           } else {
+              ${f(leftGen.value, rightGen.value)}
+           }
+           """
+
+    ev.copy(
+      code = code"""
+      ${leftGen.code}
+      ${rightGen.code}
+      ${CodeGenerator.javaType(dataType)} ${ev.value} = ${CodeGenerator.defaultValue(dataType)};
+      $resultCode""",
+      isNull = FalseLiteral)
+  }
+
   protected override def nullSafeEval(left: Any, right: Any): Any = ordering.equiv(left, right)
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    defineCodeGen(ctx, ev, (c1, c2) => ctx.genEqual(left.dataType, c1, c2))
+    defineCodeGenForEqualTo(ctx, ev, (c1, c2) => ctx.genEqual(left.dataType, c1, c2))
   }
 
   override protected def withNewChildrenInternal(
-    newLeft: Expression, newRight: Expression): EqualTo = copy(left = newLeft, right = newRight)
+      newLeft: Expression,
+      newRight: Expression): EqualTo = copy(left = newLeft, right = newRight)
 }
 
 // TODO: although map type is not orderable, technically map type should be able to be used
@@ -928,7 +990,8 @@ case class EqualTo(left: Expression, right: Expression)
     expr1 _FUNC_ expr2 - Returns same result as the EQUAL(=) operator for non-null operands,
       but returns true if both are null, false if one of the them is null.
   """,
-  arguments = """
+  arguments =
+    """
     Arguments:
       * expr1, expr2 - the two expressions must be same type or can be casted to a common type,
           and must be a type that can be used in equality comparison. Map type is not supported.
@@ -976,19 +1039,23 @@ case class EqualNullSafe(left: Expression, right: Expression) extends BinaryComp
     val eval1 = left.genCode(ctx)
     val eval2 = right.genCode(ctx)
     val equalCode = ctx.genEqual(left.dataType, eval1.value, eval2.value)
-    ev.copy(code = eval1.code + eval2.code + code"""
+    ev.copy(
+      code = eval1.code + eval2.code + code"""
         boolean ${ev.value} = (${eval1.isNull} && ${eval2.isNull}) ||
-           (!${eval1.isNull} && !${eval2.isNull} && $equalCode);""", isNull = FalseLiteral)
+           (!${eval1.isNull} && !${eval2.isNull} && $equalCode);""",
+      isNull = FalseLiteral)
   }
 
   override protected def withNewChildrenInternal(
-      newLeft: Expression, newRight: Expression): EqualNullSafe =
+      newLeft: Expression,
+      newRight: Expression): EqualNullSafe =
     copy(left = newLeft, right = newRight)
 }
 
 @ExpressionDescription(
   usage = "expr1 _FUNC_ expr2 - Returns true if `expr1` is less than `expr2`.",
-  arguments = """
+  arguments =
+    """
     Arguments:
       * expr1, expr2 - the two expressions must be same type or can be casted to a common type,
           and must be a type that can be ordered. For example, map type is not orderable, so it
@@ -1011,19 +1078,22 @@ case class EqualNullSafe(left: Expression, right: Expression) extends BinaryComp
   since = "1.0.0",
   group = "predicate_funcs")
 case class LessThan(left: Expression, right: Expression)
-    extends BinaryComparison with NullIntolerant {
+    extends BinaryComparison
+    with NullIntolerant {
 
   override def symbol: String = "<"
 
   protected override def nullSafeEval(input1: Any, input2: Any): Any = ordering.lt(input1, input2)
 
   override protected def withNewChildrenInternal(
-    newLeft: Expression, newRight: Expression): Expression = copy(left = newLeft, right = newRight)
+      newLeft: Expression,
+      newRight: Expression): Expression = copy(left = newLeft, right = newRight)
 }
 
 @ExpressionDescription(
   usage = "expr1 _FUNC_ expr2 - Returns true if `expr1` is less than or equal to `expr2`.",
-  arguments = """
+  arguments =
+    """
     Arguments:
       * expr1, expr2 - the two expressions must be same type or can be casted to a common type,
           and must be a type that can be ordered. For example, map type is not orderable, so it
@@ -1046,19 +1116,23 @@ case class LessThan(left: Expression, right: Expression)
   since = "1.0.0",
   group = "predicate_funcs")
 case class LessThanOrEqual(left: Expression, right: Expression)
-    extends BinaryComparison with NullIntolerant {
+    extends BinaryComparison
+    with NullIntolerant {
 
   override def symbol: String = "<="
 
-  protected override def nullSafeEval(input1: Any, input2: Any): Any = ordering.lteq(input1, input2)
+  protected override def nullSafeEval(input1: Any, input2: Any): Any =
+    ordering.lteq(input1, input2)
 
   override protected def withNewChildrenInternal(
-    newLeft: Expression, newRight: Expression): Expression = copy(left = newLeft, right = newRight)
+      newLeft: Expression,
+      newRight: Expression): Expression = copy(left = newLeft, right = newRight)
 }
 
 @ExpressionDescription(
   usage = "expr1 _FUNC_ expr2 - Returns true if `expr1` is greater than `expr2`.",
-  arguments = """
+  arguments =
+    """
     Arguments:
       * expr1, expr2 - the two expressions must be same type or can be casted to a common type,
           and must be a type that can be ordered. For example, map type is not orderable, so it
@@ -1081,19 +1155,22 @@ case class LessThanOrEqual(left: Expression, right: Expression)
   since = "1.0.0",
   group = "predicate_funcs")
 case class GreaterThan(left: Expression, right: Expression)
-    extends BinaryComparison with NullIntolerant {
+    extends BinaryComparison
+    with NullIntolerant {
 
   override def symbol: String = ">"
 
   protected override def nullSafeEval(input1: Any, input2: Any): Any = ordering.gt(input1, input2)
 
   override protected def withNewChildrenInternal(
-    newLeft: Expression, newRight: Expression): Expression = copy(left = newLeft, right = newRight)
+      newLeft: Expression,
+      newRight: Expression): Expression = copy(left = newLeft, right = newRight)
 }
 
 @ExpressionDescription(
   usage = "expr1 _FUNC_ expr2 - Returns true if `expr1` is greater than or equal to `expr2`.",
-  arguments = """
+  arguments =
+    """
     Arguments:
       * expr1, expr2 - the two expressions must be same type or can be casted to a common type,
           and must be a type that can be ordered. For example, map type is not orderable, so it
@@ -1116,14 +1193,17 @@ case class GreaterThan(left: Expression, right: Expression)
   since = "1.0.0",
   group = "predicate_funcs")
 case class GreaterThanOrEqual(left: Expression, right: Expression)
-    extends BinaryComparison with NullIntolerant {
+    extends BinaryComparison
+    with NullIntolerant {
 
   override def symbol: String = ">="
 
-  protected override def nullSafeEval(input1: Any, input2: Any): Any = ordering.gteq(input1, input2)
+  protected override def nullSafeEval(input1: Any, input2: Any): Any =
+    ordering.gteq(input1, input2)
 
   override protected def withNewChildrenInternal(
-      newLeft: Expression, newRight: Expression): GreaterThanOrEqual =
+      newLeft: Expression,
+      newRight: Expression): GreaterThanOrEqual =
     copy(left = newLeft, right = newRight)
 }
 
