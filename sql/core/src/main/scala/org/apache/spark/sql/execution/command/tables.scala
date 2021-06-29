@@ -28,7 +28,7 @@ import org.apache.hadoop.fs.permission.{AclEntry, AclEntryScope, AclEntryType, F
 
 import org.apache.spark.sql.{AnalysisException, Row, SparkSession}
 import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.catalyst.analysis.{NoSuchPartitionException, UnresolvedAttribute}
+import org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute
 import org.apache.spark.sql.catalyst.catalog._
 import org.apache.spark.sql.catalyst.catalog.CatalogTableType._
 import org.apache.spark.sql.catalyst.catalog.CatalogTypes.TablePartitionSpec
@@ -36,7 +36,7 @@ import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.plans.DescribeCommandSchema
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.util.{escapeSingleQuotedString, quoteIdentifier, CaseInsensitiveMap, CharVarcharUtils}
-import org.apache.spark.sql.errors.{QueryCompilationErrors}
+import org.apache.spark.sql.errors.{QueryCompilationErrors, QueryExecutionErrors}
 import org.apache.spark.sql.execution.datasources.DataSource
 import org.apache.spark.sql.execution.datasources.csv.CSVFileFormat
 import org.apache.spark.sql.execution.datasources.json.JsonFileFormat
@@ -307,24 +307,19 @@ case class LoadDataCommand(
     }
 
     if (DDLUtils.isDatasourceTable(targetTable)) {
-      throw new AnalysisException(
-        s"LOAD DATA is not supported for datasource tables: $tableIdentWithDB")
+      throw QueryCompilationErrors.loadDataNotSupportedForDatasourceTablesError(tableIdentWithDB)
     }
     if (targetTable.partitionColumnNames.nonEmpty) {
       if (partition.isEmpty) {
-        throw new AnalysisException(s"LOAD DATA target table $tableIdentWithDB is partitioned, " +
-          s"but no partition spec is provided")
+        throw QueryCompilationErrors.loadDataNoPartitionSpecProvidedError(tableIdentWithDB)
       }
       if (targetTable.partitionColumnNames.size != partition.get.size) {
-        throw new AnalysisException(s"LOAD DATA target table $tableIdentWithDB is partitioned, " +
-          s"but number of columns in provided partition spec (${partition.get.size}) " +
-          s"do not match number of partitioned columns in table " +
-          s"(${targetTable.partitionColumnNames.size})")
+        throw QueryCompilationErrors.loadDataNumberColsNotMatchError(
+          tableIdentWithDB, partition.get.size, targetTable.partitionColumnNames.size)
       }
     } else {
       if (partition.nonEmpty) {
-        throw new AnalysisException(s"LOAD DATA target table $tableIdentWithDB is not " +
-          s"partitioned, but a partition spec was provided.")
+        throw QueryCompilationErrors.loadDataButPartitionSpecWasProvidedError(tableIdentWithDB)
       }
     }
     val loadPath = {
@@ -471,7 +466,8 @@ case class TruncateTableCommand(
         // Fail if the partition spec is fully specified (not partial) and the partition does not
         // exist.
         for (spec <- partitionSpec if partLocations.isEmpty && spec.size == partCols.length) {
-          throw new NoSuchPartitionException(table.database, table.identifier.table, spec)
+          throw QueryCompilationErrors.noSuchPartitionError(table.database,
+            table.identifier.table, spec)
         }
 
         partLocations
@@ -514,9 +510,8 @@ case class TruncateTableCommand(
                 fs.setPermission(path, permission)
               } catch {
                 case NonFatal(e) =>
-                  throw new SecurityException(
-                    s"Failed to set original permission $permission back to " +
-                      s"the created path: $path. Exception: ${e.getMessage}")
+                  throw QueryExecutionErrors.failSetOriginalPermissionBackError(
+                    permission, path, e)
               }
             }
             optAcls.foreach { acls =>
@@ -539,17 +534,15 @@ case class TruncateTableCommand(
                 fs.setAcl(path, aclEntries)
               } catch {
                 case NonFatal(e) =>
-                  throw new SecurityException(
-                    s"Failed to set original ACL $aclEntries back to " +
-                      s"the created path: $path. Exception: ${e.getMessage}")
+                  throw QueryExecutionErrors.failToSetOriginalACLBackError(aclEntries.toString,
+                    path, e)
               }
             }
           }
         } catch {
           case NonFatal(e) =>
-            throw new AnalysisException(
-              s"Failed to truncate table $tableIdentWithDB when removing data of the path: $path " +
-                s"because of ${e.toString}")
+            throw QueryCompilationErrors.failToTruncateTableWhenRemovingDataError(tableIdentWithDB,
+              path, e)
         }
       }
     }
@@ -664,8 +657,7 @@ case class DescribeTableCommand(
       metadata: CatalogTable,
       result: ArrayBuffer[Row]): Unit = {
     if (metadata.tableType == CatalogTableType.VIEW) {
-      throw new AnalysisException(
-        s"DESC PARTITION is not allowed on a view: ${table.identifier}")
+      throw QueryCompilationErrors.descPartitionNotAllowedOnTempView(table.identifier)
     }
     DDLUtils.verifyPartitionProviderIsHive(spark, metadata, "DESC PARTITION")
     val partition = catalog.getPartition(table, partitionSpec)
