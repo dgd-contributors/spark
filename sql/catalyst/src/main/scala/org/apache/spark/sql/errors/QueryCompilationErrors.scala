@@ -1871,19 +1871,21 @@ private[spark] object QueryCompilationErrors {
   }
 
   def alterAddColNotSupportViewError(table: TableIdentifier): Throwable = {
-    new AnalysisException(s"""
-         ALTER ADD COLUMNS does not support views.
-         You must drop and re-create the views for adding the new columns. Views: $table
-         """)
+    new AnalysisException(
+      s"""
+        |ALTER ADD COLUMNS does not support views.
+        |You must drop and re-create the views for adding the new columns. Views: $table
+       """.stripMargin)
   }
 
   def alterAddColNotSupportDatasourceTableError(
       tableType: Any,
       table: TableIdentifier): Throwable = {
-    new AnalysisException(s"""
-         ALTER ADD COLUMNS does not support datasource table with type $tableType.
-         You must drop and re-create the table for adding the new columns. Tables: $table
-         """)
+    new AnalysisException(
+      s"""
+        |ALTER ADD COLUMNS does not support datasource table with type $tableType.
+        |You must drop and re-create the table for adding the new columns. Tables: $table
+       """.stripMargin)
   }
 
   def loadDataNotSupportedForDatasourceTablesError(tableIdentWithDB: String): Throwable = {
