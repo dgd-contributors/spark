@@ -1976,7 +1976,7 @@ private[spark] object QueryCompilationErrors {
   }
 
   def isSparkDataSourceTableError(table: TableIdentifier): Throwable = {
-    throw new AnalysisException(
+    new AnalysisException(
       s"$table is a Spark data source table. Use `SHOW CREATE TABLE` without `AS SERDE` instead.")
   }
 
