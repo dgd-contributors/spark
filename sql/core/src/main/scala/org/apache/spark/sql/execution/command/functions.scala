@@ -19,7 +19,7 @@ package org.apache.spark.sql.execution.command
 
 import java.util.Locale
 
-import org.apache.spark.sql.{Row, SparkSession}
+import org.apache.spark.sql.{AnalysisException, Row, SparkSession}
 import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.{FunctionRegistry, NoSuchFunctionException}
 import org.apache.spark.sql.catalyst.catalog.{CatalogFunction, FunctionResource}
@@ -58,17 +58,20 @@ case class CreateFunctionCommand(
   extends LeafRunnableCommand {
 
   if (ignoreIfExists && replace) {
-    throw QueryCompilationErrors.createFuncWithBothIfNotExistsAndReplaceError()
+    throw new AnalysisException("CREATE FUNCTION with both IF NOT EXISTS and REPLACE" +
+      " is not allowed.")
   }
 
   // Disallow to define a temporary function with `IF NOT EXISTS`
   if (ignoreIfExists && isTemp) {
-    throw QueryCompilationErrors.defineTempFuncWithIfExistsError()
+    throw new AnalysisException(
+      "It is not allowed to define a TEMPORARY function with IF NOT EXISTS.")
   }
 
   // Temporary function names should not contain database prefix like "database.function"
   if (databaseName.isDefined && isTemp) {
-    throw QueryCompilationErrors.specifyingDBInCreateTempFuncError(databaseName.get)
+    throw new AnalysisException(s"Specifying a database in CREATE TEMPORARY FUNCTION " +
+      s"is not allowed: '${databaseName.get}'")
   }
 
   override def run(sparkSession: SparkSession): Seq[Row] = {
@@ -180,10 +183,11 @@ case class DropFunctionCommand(
     val catalog = sparkSession.sessionState.catalog
     if (isTemp) {
       if (databaseName.isDefined) {
-        throw QueryCompilationErrors.specifyingDBInDropTempFuncError(databaseName.get)
+        throw new AnalysisException(s"Specifying a database in DROP TEMPORARY FUNCTION " +
+          s"is not allowed: '${databaseName.get}'")
       }
       if (FunctionRegistry.builtin.functionExists(FunctionIdentifier(functionName))) {
-        throw QueryCompilationErrors.cannotDropNativeFuncError(functionName)
+        throw new AnalysisException(s"Cannot drop native function '$functionName'")
       }
       catalog.dropTempFunction(functionName, ifExists)
     } else {
@@ -256,10 +260,10 @@ case class RefreshFunctionCommand(
   override def run(sparkSession: SparkSession): Seq[Row] = {
     val catalog = sparkSession.sessionState.catalog
     if (FunctionRegistry.builtin.functionExists(FunctionIdentifier(functionName, databaseName))) {
-      throw QueryCompilationErrors.cannotRefreshBuiltInFuncError(functionName)
+      throw new AnalysisException(s"Cannot refresh built-in function $functionName")
     }
     if (catalog.isTemporaryFunction(FunctionIdentifier(functionName, databaseName))) {
-      throw QueryCompilationErrors.cannotRefreshTempFuncError(functionName)
+      throw new AnalysisException(s"Cannot refresh temporary function $functionName")
     }
 
     val identifier = FunctionIdentifier(
@@ -272,7 +276,7 @@ case class RefreshFunctionCommand(
     } else {
       // clear cached function and throw exception
       catalog.unregisterFunction(identifier)
-      throw QueryCompilationErrors.noSuchFunctionError(identifier)
+      throw new NoSuchFunctionException(identifier.database.get, identifier.funcName)
     }
 
     Seq.empty[Row]
