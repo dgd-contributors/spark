@@ -36,7 +36,7 @@ import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.plans.DescribeCommandSchema
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.util.{escapeSingleQuotedString, quoteIdentifier, CaseInsensitiveMap, CharVarcharUtils}
-import org.apache.spark.sql.errors.QueryCompilationErrors
+import org.apache.spark.sql.errors.{QueryCompilationErrors, QueryExecutionErrors}
 import org.apache.spark.sql.execution.datasources.DataSource
 import org.apache.spark.sql.execution.datasources.csv.CSVFileFormat
 import org.apache.spark.sql.execution.datasources.json.JsonFileFormat
@@ -255,11 +255,7 @@ case class AlterTableAddColumnsCommand(
     val catalogTable = catalog.getTempViewOrPermanentTableMetadata(table)
 
     if (catalogTable.tableType == CatalogTableType.VIEW) {
-      throw new AnalysisException(
-        s"""
-          |ALTER ADD COLUMNS does not support views.
-          |You must drop and re-create the views for adding the new columns. Views: $table
-         """.stripMargin)
+      throw QueryCompilationErrors.alterAddColNotSupportViewError(table)
     }
 
     if (DDLUtils.isDatasourceTable(catalogTable)) {
@@ -274,11 +270,7 @@ case class AlterTableAddColumnsCommand(
              _: OrcDataSourceV2 | _: ParquetDataSourceV2 =>
         case s if s.getClass.getCanonicalName.endsWith("OrcFileFormat") =>
         case s =>
-          throw new AnalysisException(
-            s"""
-              |ALTER ADD COLUMNS does not support datasource table with type $s.
-              |You must drop and re-create the table for adding the new columns. Tables: $table
-             """.stripMargin)
+          throw QueryCompilationErrors.alterAddColNotSupportDatasourceTableError(s, table)
       }
     }
     catalogTable
@@ -305,33 +297,33 @@ case class LoadDataCommand(
   override def run(sparkSession: SparkSession): Seq[Row] = {
     val catalog = sparkSession.sessionState.catalog
     val targetTable = catalog.getTableMetadata(table)
-    val tableIdentwithDB = targetTable.identifier.quotedString
+    val tableIdentWithDB = targetTable.identifier.quotedString
     val normalizedSpec = partition.map { spec =>
       PartitioningUtils.normalizePartitionSpec(
         spec,
         targetTable.partitionSchema,
-        tableIdentwithDB,
+        tableIdentWithDB,
         sparkSession.sessionState.conf.resolver)
     }
 
     if (DDLUtils.isDatasourceTable(targetTable)) {
       throw new AnalysisException(
-        s"LOAD DATA is not supported for datasource tables: $tableIdentwithDB")
+        s"LOAD DATA is not supported for datasource tables: $tableIdentWithDB")
     }
     if (targetTable.partitionColumnNames.nonEmpty) {
       if (partition.isEmpty) {
-        throw new AnalysisException(s"LOAD DATA target table $tableIdentwithDB is partitioned, " +
+        throw new AnalysisException(s"LOAD DATA target table $tableIdentWithDB is partitioned, " +
           s"but no partition spec is provided")
       }
       if (targetTable.partitionColumnNames.size != partition.get.size) {
-        throw new AnalysisException(s"LOAD DATA target table $tableIdentwithDB is partitioned, " +
+        throw new AnalysisException(s"LOAD DATA target table $tableIdentWithDB is partitioned, " +
           s"but number of columns in provided partition spec (${partition.get.size}) " +
           s"do not match number of partitioned columns in table " +
           s"(${targetTable.partitionColumnNames.size})")
       }
     } else {
       if (partition.nonEmpty) {
-        throw new AnalysisException(s"LOAD DATA target table $tableIdentwithDB is not " +
+        throw new AnalysisException(s"LOAD DATA target table $tableIdentWithDB is not " +
           s"partitioned, but a partition spec was provided.")
       }
     }
@@ -391,7 +383,7 @@ case class LoadDataCommand(
     }
 
     // Refresh the data and metadata cache to ensure the data visible to the users
-    sparkSession.catalog.refreshTable(tableIdentwithDB)
+    sparkSession.catalog.refreshTable(tableIdentWithDB)
 
     CommandUtils.updateTableStats(sparkSession, targetTable)
     Seq.empty[Row]
