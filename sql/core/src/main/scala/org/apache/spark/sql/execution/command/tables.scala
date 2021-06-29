@@ -26,9 +26,9 @@ import scala.util.control.NonFatal
 import org.apache.hadoop.fs.{FileContext, FsConstants, Path}
 import org.apache.hadoop.fs.permission.{AclEntry, AclEntryScope, AclEntryType, FsAction, FsPermission}
 
-import org.apache.spark.sql.{Row, SparkSession}
+import org.apache.spark.sql.{AnalysisException, Row, SparkSession}
 import org.apache.spark.sql.catalyst.TableIdentifier
-import org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute
+import org.apache.spark.sql.catalyst.analysis.{NoSuchPartitionException, UnresolvedAttribute}
 import org.apache.spark.sql.catalyst.catalog._
 import org.apache.spark.sql.catalyst.catalog.CatalogTableType._
 import org.apache.spark.sql.catalyst.catalog.CatalogTypes.TablePartitionSpec
@@ -36,7 +36,7 @@ import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.plans.DescribeCommandSchema
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.util.{escapeSingleQuotedString, quoteIdentifier, CaseInsensitiveMap, CharVarcharUtils}
-import org.apache.spark.sql.errors.{QueryCompilationErrors, QueryExecutionErrors}
+import org.apache.spark.sql.errors.QueryCompilationErrors
 import org.apache.spark.sql.execution.datasources.DataSource
 import org.apache.spark.sql.execution.datasources.csv.CSVFileFormat
 import org.apache.spark.sql.execution.datasources.json.JsonFileFormat
@@ -255,7 +255,11 @@ case class AlterTableAddColumnsCommand(
     val catalogTable = catalog.getTempViewOrPermanentTableMetadata(table)
 
     if (catalogTable.tableType == CatalogTableType.VIEW) {
-      throw QueryCompilationErrors.alterAddColNotSupportViewError(table)
+      throw new AnalysisException(
+        s"""
+          |ALTER ADD COLUMNS does not support views.
+          |You must drop and re-create the views for adding the new columns. Views: $table
+         """.stripMargin)
     }
 
     if (DDLUtils.isDatasourceTable(catalogTable)) {
@@ -270,7 +274,11 @@ case class AlterTableAddColumnsCommand(
              _: OrcDataSourceV2 | _: ParquetDataSourceV2 =>
         case s if s.getClass.getCanonicalName.endsWith("OrcFileFormat") =>
         case s =>
-          throw QueryCompilationErrors.alterAddColNotSupportDatasourceTableError(s, table)
+          throw new AnalysisException(
+            s"""
+              |ALTER ADD COLUMNS does not support datasource table with type $s.
+              |You must drop and re-create the table for adding the new columns. Tables: $table
+             """.stripMargin)
       }
     }
     catalogTable
@@ -297,29 +305,34 @@ case class LoadDataCommand(
   override def run(sparkSession: SparkSession): Seq[Row] = {
     val catalog = sparkSession.sessionState.catalog
     val targetTable = catalog.getTableMetadata(table)
-    val tableIdentWithDB = targetTable.identifier.quotedString
+    val tableIdentwithDB = targetTable.identifier.quotedString
     val normalizedSpec = partition.map { spec =>
       PartitioningUtils.normalizePartitionSpec(
         spec,
         targetTable.partitionSchema,
-        tableIdentWithDB,
+        tableIdentwithDB,
         sparkSession.sessionState.conf.resolver)
     }
 
     if (DDLUtils.isDatasourceTable(targetTable)) {
-      throw QueryCompilationErrors.loadDataNotSupportedForDatasourceTablesError(tableIdentWithDB)
+      throw new AnalysisException(
+        s"LOAD DATA is not supported for datasource tables: $tableIdentwithDB")
     }
     if (targetTable.partitionColumnNames.nonEmpty) {
       if (partition.isEmpty) {
-        throw QueryCompilationErrors.loadDataNoPartitionSpecProvidedError(tableIdentWithDB)
+        throw new AnalysisException(s"LOAD DATA target table $tableIdentwithDB is partitioned, " +
+          s"but no partition spec is provided")
       }
       if (targetTable.partitionColumnNames.size != partition.get.size) {
-        throw QueryCompilationErrors.loadDataNumberColsNotMatchError(
-          tableIdentWithDB, partition.get.size, targetTable.partitionColumnNames.size)
+        throw new AnalysisException(s"LOAD DATA target table $tableIdentwithDB is partitioned, " +
+          s"but number of columns in provided partition spec (${partition.get.size}) " +
+          s"do not match number of partitioned columns in table " +
+          s"(${targetTable.partitionColumnNames.size})")
       }
     } else {
       if (partition.nonEmpty) {
-        throw QueryCompilationErrors.loadDataButPartitionSpecWasProvidedError(tableIdentWithDB)
+        throw new AnalysisException(s"LOAD DATA target table $tableIdentwithDB is not " +
+          s"partitioned, but a partition spec was provided.")
       }
     }
     val loadPath = {
@@ -354,12 +367,12 @@ case class LoadDataCommand(
     try {
       val fileStatus = fs.globStatus(loadPath)
       if (fileStatus == null || fileStatus.isEmpty) {
-        throw QueryCompilationErrors.loadDataInputPathNotExistError(path)
+        throw new AnalysisException(s"LOAD DATA input path does not exist: $path")
       }
     } catch {
       case e: IllegalArgumentException =>
         log.warn(s"Exception while validating the load path $path ", e)
-        throw QueryCompilationErrors.loadDataInputPathNotExistError(path)
+        throw new AnalysisException(s"LOAD DATA input path does not exist: $path")
     }
     if (partition.nonEmpty) {
       catalog.loadPartition(
@@ -378,7 +391,7 @@ case class LoadDataCommand(
     }
 
     // Refresh the data and metadata cache to ensure the data visible to the users
-    sparkSession.catalog.refreshTable(tableIdentWithDB)
+    sparkSession.catalog.refreshTable(tableIdentwithDB)
 
     CommandUtils.updateTableStats(sparkSession, targetTable)
     Seq.empty[Row]
@@ -436,11 +449,13 @@ case class TruncateTableCommand(
     val tableIdentWithDB = table.identifier.quotedString
 
     if (table.tableType == CatalogTableType.EXTERNAL) {
-      throw QueryCompilationErrors.truncateTableOnExternalTablesError(tableIdentWithDB)
+      throw new AnalysisException(
+        s"Operation not allowed: TRUNCATE TABLE on external tables: $tableIdentWithDB")
     }
     if (table.partitionColumnNames.isEmpty && partitionSpec.isDefined) {
-      throw QueryCompilationErrors.truncateTablePartitionNotSupportedOnTableNotPartitionedError(
-        tableIdentWithDB)
+      throw new AnalysisException(
+        s"Operation not allowed: TRUNCATE TABLE ... PARTITION is not supported " +
+        s"for tables that are not partitioned: $tableIdentWithDB")
     }
     if (partitionSpec.isDefined) {
       DDLUtils.verifyPartitionProviderIsHive(spark, table, "TRUNCATE TABLE ... PARTITION")
@@ -464,8 +479,7 @@ case class TruncateTableCommand(
         // Fail if the partition spec is fully specified (not partial) and the partition does not
         // exist.
         for (spec <- partitionSpec if partLocations.isEmpty && spec.size == partCols.length) {
-          throw QueryCompilationErrors.noSuchPartitionError(table.database,
-            table.identifier.table, spec)
+          throw new NoSuchPartitionException(table.database, table.identifier.table, spec)
         }
 
         partLocations
@@ -508,8 +522,9 @@ case class TruncateTableCommand(
                 fs.setPermission(path, permission)
               } catch {
                 case NonFatal(e) =>
-                  throw QueryExecutionErrors.failSetOriginalPermissionBackError(
-                    permission, path, e)
+                  throw new SecurityException(
+                    s"Failed to set original permission $permission back to " +
+                      s"the created path: $path. Exception: ${e.getMessage}")
               }
             }
             optAcls.foreach { acls =>
@@ -532,15 +547,17 @@ case class TruncateTableCommand(
                 fs.setAcl(path, aclEntries)
               } catch {
                 case NonFatal(e) =>
-                  throw QueryExecutionErrors.failToSetOriginalACLBackError(aclEntries.toString,
-                    path, e)
+                  throw new SecurityException(
+                    s"Failed to set original ACL $aclEntries back to " +
+                      s"the created path: $path. Exception: ${e.getMessage}")
               }
             }
           }
         } catch {
           case NonFatal(e) =>
-            throw QueryCompilationErrors.failToTruncateTableWhenRemovingDataError(tableIdentWithDB,
-              path, e)
+            throw new AnalysisException(
+              s"Failed to truncate table $tableIdentWithDB when removing data of the path: $path " +
+                s"because of ${e.toString}")
         }
       }
     }
@@ -600,7 +617,8 @@ case class DescribeTableCommand(
 
     if (catalog.isTempView(table)) {
       if (partitionSpec.nonEmpty) {
-        throw QueryCompilationErrors.descPartitionNotAllowedOnTempView(table.identifier)
+        throw new AnalysisException(
+          s"DESC PARTITION is not allowed on a temporary view: ${table.identifier}")
       }
       val schema = catalog.getTempViewOrPermanentTableMetadata(table).schema
       describeSchema(schema, result, header = false)
@@ -654,7 +672,8 @@ case class DescribeTableCommand(
       metadata: CatalogTable,
       result: ArrayBuffer[Row]): Unit = {
     if (metadata.tableType == CatalogTableType.VIEW) {
-      throw QueryCompilationErrors.descPartitionNotAllowedOnTempView(table.identifier)
+      throw new AnalysisException(
+        s"DESC PARTITION is not allowed on a view: ${table.identifier}")
     }
     DDLUtils.verifyPartitionProviderIsHive(spark, metadata, "DESC PARTITION")
     val partition = catalog.getPartition(table, partitionSpec)
@@ -951,8 +970,8 @@ case class ShowPartitionsCommand(
      */
 
     if (table.partitionColumnNames.isEmpty) {
-      throw QueryCompilationErrors.showPartitionNotAllowedOnTableNotPartitionedError(
-        tableIdentWithDB)
+      throw new AnalysisException(
+        s"SHOW PARTITIONS is not allowed on a table that is not partitioned: $tableIdentWithDB")
     }
 
     DDLUtils.verifyPartitionProviderIsHive(sparkSession, table, "SHOW PARTITIONS")
@@ -1067,7 +1086,8 @@ case class ShowCreateTableCommand(
   override def run(sparkSession: SparkSession): Seq[Row] = {
     val catalog = sparkSession.sessionState.catalog
     if (catalog.isTempView(table)) {
-      throw QueryCompilationErrors.showCreateTableNotSupportedOnTempView(table.identifier)
+      throw new AnalysisException(
+        s"SHOW CREATE TABLE is not supported on a temporary view: ${table.identifier}")
     } else {
       val tableMetadata = catalog.getTableRawMetadata(table)
 
@@ -1078,13 +1098,21 @@ case class ShowCreateTableCommand(
       } else {
         // For a Hive serde table, we try to convert it to Spark DDL.
         if (tableMetadata.unsupportedFeatures.nonEmpty) {
-          throw QueryCompilationErrors.showCreateTableFailToExecuteUnsupportedFeatureError(
-            tableMetadata)
+          throw new AnalysisException(
+            "Failed to execute SHOW CREATE TABLE against table " +
+              s"${tableMetadata.identifier}, which is created by Hive and uses the " +
+              "following unsupported feature(s)\n" +
+              tableMetadata.unsupportedFeatures.map(" - " + _).mkString("\n") + ". " +
+              s"Please use `SHOW CREATE TABLE ${tableMetadata.identifier} AS SERDE` " +
+              "to show Hive DDL instead."
+          )
         }
 
         if ("true".equalsIgnoreCase(tableMetadata.properties.getOrElse("transactional", "false"))) {
-          throw QueryCompilationErrors.showCreateTableNotSupportTransactionalHiveTableError(
-            tableMetadata)
+          throw new AnalysisException(
+            "SHOW CREATE TABLE doesn't support transactional Hive table. " +
+              s"Please use `SHOW CREATE TABLE ${tableMetadata.identifier} AS SERDE` " +
+              "to show Hive DDL instead.")
         }
 
         if (tableMetadata.tableType == VIEW) {
@@ -1132,7 +1160,12 @@ case class ShowCreateTableCommand(
       hiveSerde.outputFormat.foreach { format =>
         builder ++= s" OUTPUTFORMAT: $format"
       }
-      throw QueryCompilationErrors.showCreateTableFailToExecuteUnsupportedConfError(table, builder)
+      throw new AnalysisException(
+        "Failed to execute SHOW CREATE TABLE against table " +
+          s"${tableMetadata.identifier}, which is created by Hive and uses the " +
+          "following unsupported serde configuration\n" +
+          builder.toString()
+      )
     } else {
       // TODO: should we keep Hive serde properties?
       val newStorage = tableMetadata.storage.copy(properties = Map.empty)
@@ -1209,7 +1242,8 @@ case class ShowCreateTableAsSerdeCommand(
     val tableMetadata = catalog.getTableRawMetadata(table)
 
     val stmt = if (DDLUtils.isDatasourceTable(tableMetadata)) {
-      throw QueryCompilationErrors.isSparkDataSourceTableError(table)
+      throw new AnalysisException(
+        s"$table is a Spark data source table. Use `SHOW CREATE TABLE` without `AS SERDE` instead.")
     } else {
       showCreateHiveTable(tableMetadata)
     }
@@ -1219,8 +1253,11 @@ case class ShowCreateTableAsSerdeCommand(
 
   private def showCreateHiveTable(metadata: CatalogTable): String = {
     def reportUnsupportedError(features: Seq[String]): Unit = {
-      throw QueryCompilationErrors.showCreateTableOrViewFailToExecuteUnsupportedFeatureError(
-        metadata, features)
+      throw new AnalysisException(
+        s"Failed to execute SHOW CREATE TABLE against table/view ${metadata.identifier}, " +
+          "which is created by Hive and uses the following unsupported feature(s)\n" +
+          features.map(" - " + _).mkString("\n")
+      )
     }
 
     if (metadata.unsupportedFeatures.nonEmpty) {
