@@ -1937,7 +1937,7 @@ private[spark] object QueryCompilationErrors {
 
   def descPartitionNotAllowedOnTempView(table: String): Throwable = {
     new AnalysisException(
-      s"DESC PARTITION is not allowed on a temporary view: $table")
+      s"DESC PARTITION is not allowed on a view: $table")
   }
 
   def showPartitionNotAllowedOnTableNotPartitionedError(tableIdentWithDB: String): Throwable = {
