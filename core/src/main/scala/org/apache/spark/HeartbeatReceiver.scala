@@ -17,13 +17,13 @@
 
 package org.apache.spark
 
-import java.util.concurrent.{ScheduledFuture, TimeUnit}
+import org.apache.spark.errors.ExecutionErrors
 
+import java.util.concurrent.{ScheduledFuture, TimeUnit}
 import scala.collection.mutable.{HashMap, Map}
 import scala.concurrent.Future
-
 import org.apache.spark.executor.ExecutorMetrics
-import org.apache.spark.internal.{config, Logging}
+import org.apache.spark.internal.{Logging, config}
 import org.apache.spark.internal.config.Network
 import org.apache.spark.rpc.{RpcCallContext, RpcEnv, ThreadSafeRpcEndpoint}
 import org.apache.spark.scheduler._
@@ -226,8 +226,7 @@ private[spark] class HeartbeatReceiver(sc: SparkContext, clock: Clock)
               // LocalSchedulerBackend is used locally and only has one single executor
               case _: LocalSchedulerBackend =>
 
-              case other => throw new UnsupportedOperationException(
-                s"Unknown scheduler backend: ${other.getClass}")
+              case other => throw ExecutionErrors.unknownSchedulerBackEndError(other.getClass)
             }
           }
         })

@@ -20,18 +20,16 @@ package org.apache.spark
 import java.io.{ByteArrayInputStream, IOException, ObjectInputStream, ObjectOutputStream}
 import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit}
 import java.util.concurrent.locks.ReentrantReadWriteLock
-
 import scala.collection.JavaConverters._
 import scala.collection.mutable.{HashMap, ListBuffer, Map}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
-
 import org.apache.commons.io.output.{ByteArrayOutputStream => ApacheByteArrayOutputStream}
 import org.roaringbitmap.RoaringBitmap
-
 import org.apache.spark.broadcast.{Broadcast, BroadcastManager}
+import org.apache.spark.errors.ExecutionErrors
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.io.CompressionCodec
@@ -491,7 +489,7 @@ private[spark] abstract class MapOutputTracker(conf: SparkConf) extends Logging 
     } catch {
       case e: Exception =>
         logError("Error communicating with MapOutputTracker", e)
-        throw new SparkException("Error communicating with MapOutputTracker", e)
+        throw ExecutionErrors.communicateWithMapOutputTrackerError(e)
     }
   }
 
@@ -499,8 +497,7 @@ private[spark] abstract class MapOutputTracker(conf: SparkConf) extends Logging 
   protected def sendTracker(message: Any): Unit = {
     val response = askTracker[Boolean](message)
     if (response != true) {
-      throw new SparkException(
-        "Error reply received from MapOutputTracker. Expecting true, got " + response.toString)
+      throw ExecutionErrors.replyReceivedFromMapOutputTrackerError(response.toString)
     }
   }
 
@@ -729,7 +726,7 @@ private[spark] class MapOutputTrackerMaster(
         shuffleStatus.removeMapOutput(mapIndex, bmAddress)
         incrementEpoch()
       case None =>
-        throw new SparkException("unregisterMapOutput called for nonexistent shuffle ID")
+        throw ExecutionErrors.unregisterMapOutputCallForNonexistentShuffleIDError()
     }
   }
 
@@ -741,8 +738,8 @@ private[spark] class MapOutputTrackerMaster(
         shuffleStatus.removeMergeResultsByFilter(x => true)
         incrementEpoch()
       case None =>
-        throw new SparkException(
-          s"unregisterAllMapAndMergeOutput called for nonexistent shuffle ID $shuffleId.")
+        throw ExecutionErrors.
+          unregisterAllMapAndMergeOutputCallForNonexistentShuffleIDError(shuffleId)
     }
   }
 
@@ -781,7 +778,7 @@ private[spark] class MapOutputTrackerMaster(
           incrementEpoch()
         }
       case None =>
-        throw new SparkException("unregisterMergeResult called for nonexistent shuffle ID")
+        throw ExecutionErrors.unregisterMergeResultCallForNonexistentShuffleIDError()
     }
   }
 
@@ -791,8 +788,8 @@ private[spark] class MapOutputTrackerMaster(
         shuffleStatus.removeMergeResultsByFilter(x => true)
         incrementEpoch()
       case None =>
-        throw new SparkException(
-          s"unregisterAllMergeResult called for nonexistent shuffle ID $shuffleId.")
+        throw ExecutionErrors.
+          unregisterAllMergeResultCallForNonexistentShuffleIDError(shuffleId)
     }
   }
 
@@ -1232,9 +1229,8 @@ private[spark] class MapOutputTrackerWorker(conf: SparkConf) extends MapOutputTr
                 MapOutputTracker.deserializeOutputStatuses[MergeStatus](fetchedBytes._2, conf)
             } catch {
               case e: SparkException =>
-                throw new MetadataFetchFailedException(shuffleId, -1,
-                  s"Unable to deserialize broadcasted map/merge statuses" +
-                    s" for shuffle $shuffleId: " + e.getCause)
+                throw ExecutionErrors.
+                  unableToDeserializeBroadcastedMapOrMergeStatusForShuffleError(shuffleId, e)
             }
             logInfo("Got the map/merge output locations")
             mapStatuses.put(shuffleId, fetchedMapStatuses)
@@ -1262,9 +1258,8 @@ private[spark] class MapOutputTrackerWorker(conf: SparkConf) extends MapOutputTr
                 MapOutputTracker.deserializeOutputStatuses[MapStatus](fetchedBytes, conf)
             } catch {
               case e: SparkException =>
-                throw new MetadataFetchFailedException(shuffleId, -1,
-                  s"Unable to deserialize broadcasted map statuses for shuffle $shuffleId: " +
-                    e.getCause)
+                throw ExecutionErrors.
+                  unableToDeserializeBroadcastedMapStatusForShuffleError(shuffleId, e)
             }
             logInfo("Got the map output locations")
             mapStatuses.put(shuffleId, fetchedStatuses)
@@ -1392,8 +1387,7 @@ private[spark] object MapOutputTracker extends Logging {
           case e: IOException =>
             logWarning("Exception encountered during deserializing broadcasted" +
               " output statuses: ", e)
-            throw new SparkException("Unable to deserialize broadcasted" +
-              " output statuses", e)
+            throw ExecutionErrors.unableToDeserializeBroadcastedOutputStatusError(e)
         }
       case _ => throw new IllegalArgumentException("Unexpected byte tag = " + bytes(0))
     }
@@ -1530,7 +1524,8 @@ private[spark] object MapOutputTracker extends Logging {
     if (status == null) {
       val errorMessage = s"Missing an output location for shuffle $shuffleId partition $partition"
       logError(errorMessage)
-      throw new MetadataFetchFailedException(shuffleId, partition, errorMessage)
+      throw ExecutionErrors.
+        missingOutputLocationForShufflePartitionError(shuffleId, partition, errorMessage)
     }
   }
 }

@@ -17,8 +17,9 @@
 
 package org.apache
 
-import java.util.Properties
+import org.apache.spark.errors.ExecutionErrors
 
+import java.util.Properties
 import org.apache.spark.util.VersionUtils
 
 /**
@@ -59,7 +60,7 @@ package object spark {
       val resourceStream = Thread.currentThread().getContextClassLoader.
         getResourceAsStream("spark-version-info.properties")
       if (resourceStream == null) {
-        throw new SparkException("Could not find spark-version-info.properties")
+        throw ExecutionErrors.cannotFindFileSparkVersionInfoPropertiesError()
       }
 
       try {
@@ -76,14 +77,14 @@ package object spark {
         )
       } catch {
         case e: Exception =>
-          throw new SparkException("Error loading properties from spark-version-info.properties", e)
+          throw ExecutionErrors.loadPropertiesSparkVersionInfoFileError(e)
       } finally {
         if (resourceStream != null) {
           try {
             resourceStream.close()
           } catch {
             case e: Exception =>
-              throw new SparkException("Error closing spark build info resource stream", e)
+              throw ExecutionErrors.closingSparkBuildInfoResourceStreamError(e)
           }
         }
       }

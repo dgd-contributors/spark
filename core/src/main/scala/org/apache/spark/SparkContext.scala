@@ -23,15 +23,13 @@ import java.util.{Arrays, Locale, Properties, ServiceLoader, UUID}
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
 import javax.ws.rs.core.UriBuilder
-
 import scala.collection.JavaConverters._
 import scala.collection.Map
 import scala.collection.immutable
 import scala.collection.mutable.HashMap
 import scala.language.implicitConversions
-import scala.reflect.{classTag, ClassTag}
+import scala.reflect.{ClassTag, classTag}
 import scala.util.control.NonFatal
-
 import com.google.common.collect.MapMaker
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
@@ -39,10 +37,10 @@ import org.apache.hadoop.io.{ArrayWritable, BooleanWritable, BytesWritable, Doub
 import org.apache.hadoop.mapred.{FileInputFormat, InputFormat, JobConf, SequenceFileInputFormat, TextInputFormat}
 import org.apache.hadoop.mapreduce.{InputFormat => NewInputFormat, Job => NewHadoopJob}
 import org.apache.hadoop.mapreduce.lib.input.{FileInputFormat => NewFileInputFormat}
-
 import org.apache.spark.annotation.{DeveloperApi, Experimental}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.deploy.{LocalSparkCluster, SparkHadoopUtil}
+import org.apache.spark.errors.ExecutionErrors
 import org.apache.spark.executor.{Executor, ExecutorMetrics, ExecutorMetricsSource}
 import org.apache.spark.input.{FixedLengthBinaryInputFormat, PortableDataStream, StreamInputFormat, WholeTextFileInputFormat}
 import org.apache.spark.internal.Logging
@@ -391,10 +389,10 @@ class SparkContext(config: SparkConf) extends Logging {
     _conf.set("spark.app.startTime", startTime.toString)
 
     if (!_conf.contains("spark.master")) {
-      throw new SparkException("A master URL must be set in your configuration")
+      throw ExecutionErrors.missingMasterUrlConfigError()
     }
     if (!_conf.contains("spark.app.name")) {
-      throw new SparkException("An application name must be set in your configuration")
+      throw ExecutionErrors.missingApplicationNameConfigError()
     }
     // This should be set as early as possible.
     SparkContext.fillMissingMagicCommitterConfsIfNeeded(_conf)

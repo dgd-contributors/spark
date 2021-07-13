@@ -19,13 +19,12 @@ package org.apache.spark
 
 import java.util.Collections
 import java.util.concurrent.TimeUnit
-
 import scala.concurrent._
 import scala.concurrent.duration.Duration
 import scala.util.Try
-
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.api.java.JavaFutureAction
+import org.apache.spark.errors.ExecutionErrors
 import org.apache.spark.rdd.RDD
 import org.apache.spark.scheduler.JobWaiter
 import org.apache.spark.util.ThreadUtils
@@ -214,7 +213,7 @@ class ComplexFutureAction[T](run : JobSubmitter => Future[T])
         subActions = job :: subActions
         job
       } else {
-        throw new SparkException("Action has been cancelled")
+        throw ExecutionErrors.actionHasBeenCancelledError()
       }
     }
   }
@@ -276,10 +275,10 @@ class JavaFutureActionWrapper[S, T](futureAction: FutureAction[S], converter: S 
       case scala.util.Success(value) => converter(value)
       case scala.util.Failure(exception) =>
         if (isCancelled) {
-          throw new CancellationException("Job cancelled").initCause(exception)
+          throw ExecutionErrors.jobCancelledError(exception)
         } else {
           // java.util.Future.get() wraps exceptions in ExecutionException
-          throw new ExecutionException("Exception thrown by job", exception)
+          throw ExecutionErrors.jobThrowExceptionError(exception)
         }
     }
   }

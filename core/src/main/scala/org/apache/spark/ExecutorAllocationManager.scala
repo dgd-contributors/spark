@@ -18,14 +18,12 @@
 package org.apache.spark
 
 import java.util.concurrent.TimeUnit
-
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.{ControlThrowable, NonFatal}
-
 import com.codahale.metrics.{Counter, Gauge, MetricRegistry}
-
-import org.apache.spark.internal.{config, Logging}
+import org.apache.spark.errors.ExecutionErrors
+import org.apache.spark.internal.{Logging, config}
 import org.apache.spark.internal.config._
 import org.apache.spark.internal.config.DECOMMISSION_ENABLED
 import org.apache.spark.internal.config.Tests.TEST_DYNAMIC_ALLOCATION_SCHEDULE_ENABLED
@@ -185,23 +183,31 @@ private[spark] class ExecutorAllocationManager(
    */
   private def validateSettings(): Unit = {
     if (minNumExecutors < 0 || maxNumExecutors < 0) {
-      throw new SparkException(
-        s"${DYN_ALLOCATION_MIN_EXECUTORS.key} and ${DYN_ALLOCATION_MAX_EXECUTORS.key} must be " +
-          "positive!")
+      throw ExecutionErrors.dynAllocationExecutorsKeyMustBePositiveError(
+        DYN_ALLOCATION_MIN_EXECUTORS.key, DYN_ALLOCATION_MAX_EXECUTORS.key
+      )
     }
     if (maxNumExecutors == 0) {
-      throw new SparkException(s"${DYN_ALLOCATION_MAX_EXECUTORS.key} cannot be 0!")
+      throw ExecutionErrors.dynAllocationMaxExecutorsKeyCannotBeZeroError(
+        DYN_ALLOCATION_MAX_EXECUTORS.key
+      )
     }
     if (minNumExecutors > maxNumExecutors) {
-      throw new SparkException(s"${DYN_ALLOCATION_MIN_EXECUTORS.key} ($minNumExecutors) must " +
-        s"be less than or equal to ${DYN_ALLOCATION_MAX_EXECUTORS.key} ($maxNumExecutors)!")
+      throw ExecutionErrors.minNumExecutorsGreaterThanMaxNumExecutorsError(
+        DYN_ALLOCATION_MIN_EXECUTORS.key, DYN_ALLOCATION_MAX_EXECUTORS.key,
+        minNumExecutors, maxNumExecutors
+      )
     }
     if (schedulerBacklogTimeoutS <= 0) {
-      throw new SparkException(s"${DYN_ALLOCATION_SCHEDULER_BACKLOG_TIMEOUT.key} must be > 0!")
+      throw ExecutionErrors.dynAllocationSchedulerBacklogTimeoutKeyMustBeGreaterThanZeroError(
+        DYN_ALLOCATION_SCHEDULER_BACKLOG_TIMEOUT.key
+      )
     }
     if (sustainedSchedulerBacklogTimeoutS <= 0) {
-      throw new SparkException(
-        s"s${DYN_ALLOCATION_SUSTAINED_SCHEDULER_BACKLOG_TIMEOUT.key} must be > 0!")
+      throw ExecutionErrors.
+        dynAllocationSustainedSchedulerBacklogTimeoutKeyMustBeGreaterThanZeroError(
+        DYN_ALLOCATION_SUSTAINED_SCHEDULER_BACKLOG_TIMEOUT.key
+      )
     }
     if (!conf.get(config.SHUFFLE_SERVICE_ENABLED)) {
       // If dynamic allocation shuffle tracking or worker decommissioning along with
@@ -212,14 +218,14 @@ private[spark] class ExecutorAllocationManager(
             conf.get(config.STORAGE_DECOMMISSION_SHUFFLE_BLOCKS_ENABLED))) {
         logWarning("Dynamic allocation without a shuffle service is an experimental feature.")
       } else if (!testing) {
-        throw new SparkException("Dynamic allocation of executors requires the external " +
-          "shuffle service. You may enable this through spark.shuffle.service.enabled.")
+        throw ExecutionErrors.externalShuffleServiceRequiredForDynamicAllocationError()
       }
     }
 
     if (executorAllocationRatio > 1.0 || executorAllocationRatio <= 0.0) {
-      throw new SparkException(
-        s"${DYN_ALLOCATION_EXECUTOR_ALLOCATION_RATIO.key} must be > 0 and <= 1.0")
+      throw ExecutionErrors.dynAllocationExecutorAllocationRatioKeyOutOfRangeError(
+        DYN_ALLOCATION_EXECUTOR_ALLOCATION_RATIO.key
+      )
     }
   }
 
@@ -542,7 +548,7 @@ private[spark] class ExecutorAllocationManager(
     executors.foreach { case (executorIdToBeRemoved, rpId) =>
       if (rpId == UNKNOWN_RESOURCE_PROFILE_ID) {
         if (testing) {
-          throw new SparkException("ResourceProfile Id was UNKNOWN, this is not expected")
+          throw ExecutionErrors.unknownResourceProfileIdError()
         }
         logWarning(s"Not removing executor $executorIdToBeRemoved because the " +
           "ResourceProfile was UNKNOWN!")

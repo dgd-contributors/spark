@@ -19,12 +19,10 @@ package org.apache.spark
 
 import java.util.{Map => JMap}
 import java.util.concurrent.ConcurrentHashMap
-
 import scala.collection.JavaConverters._
 import scala.collection.mutable.LinkedHashSet
-
 import org.apache.avro.{Schema, SchemaNormalization}
-
+import org.apache.spark.errors.ExecutionErrors
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.internal.config.History._
@@ -85,10 +83,10 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
 
   private[spark] def set(key: String, value: String, silent: Boolean): SparkConf = {
     if (key == null) {
-      throw new NullPointerException("null key")
+      throw ExecutionErrors.nullKeySparkConfError()
     }
     if (value == null) {
-      throw new NullPointerException("null value for " + key)
+      throw ExecutionErrors.nullValueByKeySparkConfError(key)
     }
     if (!silent) {
       logDeprecationWarning(key)
@@ -242,7 +240,7 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
 
   /** Get a parameter; throws a NoSuchElementException if it's not set */
   def get(key: String): String = {
-    getOption(key).getOrElse(throw new NoSuchElementException(key))
+    getOption(key).getOrElse(throw ExecutionErrors.notSetParameterError(key))
   }
 
   /** Get a parameter, falling back to a default if not set */
@@ -483,8 +481,7 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
     } catch {
       case e: NumberFormatException =>
         // NumberFormatException doesn't have a constructor that takes a cause for some reason.
-        throw new NumberFormatException(s"Illegal value for config key $key: ${e.getMessage}")
-            .initCause(e)
+        throw ExecutionErrors.illegalValueAsNumberFormatExceptionError(key, e)
       case e: IllegalArgumentException =>
         throw new IllegalArgumentException(s"Illegal value for config key $key: ${e.getMessage}", e)
     }
@@ -522,12 +519,12 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
       if (javaOpts.contains("-Dspark")) {
         val msg = s"$executorOptsKey is not allowed to set Spark options (was '$javaOpts'). " +
           "Set them directly on a SparkConf or in a properties file when using ./bin/spark-submit."
-        throw new Exception(msg)
+        throw ExecutionErrors.throwExceptionMessageError(msg)
       }
       if (javaOpts.contains("-Xmx")) {
         val msg = s"$executorOptsKey is not allowed to specify max heap memory settings " +
           s"(was '$javaOpts'). Use spark.executor.memory instead."
-        throw new Exception(msg)
+        throw ExecutionErrors.throwExceptionMessageError(msg)
       }
     }
 
@@ -542,8 +539,7 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
     if (contains(SUBMIT_DEPLOY_MODE)) {
       get(SUBMIT_DEPLOY_MODE) match {
         case "cluster" | "client" =>
-        case e => throw new SparkException(s"${SUBMIT_DEPLOY_MODE.key} can only be " +
-          "\"cluster\" or \"client\".")
+        case e => throw ExecutionErrors.invalidSubmitDeployModeError(SUBMIT_DEPLOY_MODE.key)
       }
     }
 
