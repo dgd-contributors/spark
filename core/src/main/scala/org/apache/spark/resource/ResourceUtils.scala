@@ -441,15 +441,19 @@ private[spark] object ResourceUtils extends Logging {
     if (limitingResource.nonEmpty && !limitingResource.equals(ResourceProfile.CPUS)) {
       if ((taskCpus * maxTaskPerExec) < cores) {
         val resourceNumSlots = Math.floor(cores/taskCpus).toInt
-        val message = s"The configuration of cores (exec = ${cores} " +
-          s"task = ${taskCpus}, runnable tasks = ${resourceNumSlots}) will " +
-          s"result in wasted resources due to resource ${limitingResource} limiting the " +
-          s"number of runnable tasks per executor to: ${maxTaskPerExec}. Please adjust " +
-          "your configuration."
         if (sparkConf.get(RESOURCES_WARNING_TESTING)) {
-          throw QueryExecutionErrors.adjustConfigurationError(message)
+          throw QueryExecutionErrors.adjustConfigurationError(
+            s"The configuration of cores (exec = ${cores} " +
+            s"task = ${taskCpus}, runnable tasks = ${resourceNumSlots}) will " +
+            s"result in wasted resources due to resource ${limitingResource} limiting the " +
+            s"number of runnable tasks per executor to: ${maxTaskPerExec}. Please adjust " +
+            "your configuration.")
         } else {
-          logWarning(message)
+          logWarning( s"The configuration of cores (exec = ${cores} " +
+            s"task = ${taskCpus}, runnable tasks = ${resourceNumSlots}) will " +
+            s"result in wasted resources due to resource ${limitingResource} limiting the " +
+            s"number of runnable tasks per executor to: ${maxTaskPerExec}. Please adjust " +
+            "your configuration.")
         }
       }
     }
@@ -463,16 +467,21 @@ private[spark] object ResourceUtils extends Logging {
         val origTaskAmount = treq.amount
         val taskReqStr = s"${origTaskAmount}/${numParts}"
         val resourceNumSlots = Math.floor(execAmount * numParts / taskAmount).toInt
-        val message = s"The configuration of resource: ${treq.resourceName} " +
-          s"(exec = ${execAmount}, task = ${taskReqStr}, " +
-          s"runnable tasks = ${resourceNumSlots}) will " +
-          s"result in wasted resources due to resource ${limitingResource} limiting the " +
-          s"number of runnable tasks per executor to: ${maxTaskPerExec}. Please adjust " +
-          "your configuration."
         if (sparkConf.get(RESOURCES_WARNING_TESTING)) {
-          throw QueryExecutionErrors.adjustConfigurationError(message)
+          throw QueryExecutionErrors.adjustConfigurationError(
+            s"The configuration of resource: ${treq.resourceName} " +
+            s"(exec = ${execAmount}, task = ${taskReqStr}, " +
+            s"runnable tasks = ${resourceNumSlots}) will " +
+            s"result in wasted resources due to resource ${limitingResource} limiting the " +
+            s"number of runnable tasks per executor to: ${maxTaskPerExec}. Please adjust " +
+            "your configuration.")
         } else {
-          logWarning(message)
+          logWarning(s"The configuration of resource: ${treq.resourceName} " +
+            s"(exec = ${execAmount}, task = ${taskReqStr}, " +
+            s"runnable tasks = ${resourceNumSlots}) will " +
+            s"result in wasted resources due to resource ${limitingResource} limiting the " +
+            s"number of runnable tasks per executor to: ${maxTaskPerExec}. Please adjust " +
+            "your configuration.")
         }
       }
     }
