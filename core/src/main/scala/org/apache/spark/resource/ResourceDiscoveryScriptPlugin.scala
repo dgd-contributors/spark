@@ -17,12 +17,11 @@
 
 package org.apache.spark.resource
 
-
 import java.io.File
 import java.util.Optional
 
 import org.apache.spark.{SparkConf, SparkException}
-import org.apache.spark.Errors.QueryExecutionErrors
+import org.apache.spark.errors.QueryExecutionErrors
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.api.resource.ResourceDiscoveryPlugin
 import org.apache.spark.internal.Logging
@@ -52,14 +51,13 @@ class ResourceDiscoveryScriptPlugin extends ResourceDiscoveryPlugin with Logging
         val output = executeAndGetOutput(Seq(script.get), new File("."))
         ResourceInformation.parseJson(output)
       } else {
-        throw QueryExecutionErrors.notExistResourceScript(scriptFile, resourceName)
+        throw QueryExecutionErrors.notExistResourceScriptError(scriptFile, resourceName)
       }
     } else {
-      throw QueryExecutionErrors.specifyADiscoveryScript(resourceName)
+      throw QueryExecutionErrors.specifyADiscoveryScriptError(resourceName)
     }
     if (!result.name.equals(resourceName)) {
-      throw new SparkException(s"Error running the resource discovery script ${script.get}: " +
-        s"script returned resource name ${result.name} and we were expecting $resourceName.")
+      throw QueryExecutionErrors.runningOtherResourceError(script, result, resourceName)
     }
     Optional.of(result)
   }

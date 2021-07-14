@@ -24,7 +24,7 @@ import javax.annotation.concurrent.GuardedBy
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-import org.apache.spark.Errors.QueryExecutionErrors
+import org.apache.spark.errors.QueryExecutionErrors
 import org.apache.spark.SparkConf
 import org.apache.spark.annotation.{Evolving, Since}
 import org.apache.spark.internal.Logging
@@ -102,7 +102,7 @@ class ResourceProfile(
    */
   private[spark] def getSchedulerTaskResourceAmount(resource: String): Int = {
     val taskAmount = taskResources.getOrElse(resource,
-      throw QueryExecutionErrors.notExistResource(resource, id))
+      throw QueryExecutionErrors.notExistResourceError(resource, id))
    if (taskAmount.amount < 1) 1 else taskAmount.amount.toInt
   }
 
@@ -111,7 +111,7 @@ class ResourceProfile(
       calculateTasksAndLimitingResource(sparkConf)
     }
     _executorResourceSlotsPerAddr.get.getOrElse(resource,
-      throw QueryExecutionErrors.notExistResource(resource, id))
+      throw QueryExecutionErrors.notExistResourceError(resource, id))
   }
 
   // Maximum tasks you could put on an executor with this profile based on the limiting resource.
@@ -186,7 +186,7 @@ class ResourceProfile(
       numPartsPerResourceMap(rName) = 1
       if (taskReq > 0.0) {
         if (taskReq > execReq.amount) {
-          throw QueryExecutionErrors.conditionOfResource(rName, execReq, taskReq)
+          throw QueryExecutionErrors.conditionOfResourceError(rName, execReq, taskReq)
         }
         val (numPerTask, parts) = ResourceUtils.calculateAmountAndPartsForFraction(taskReq)
         numPartsPerResourceMap(rName) = parts
@@ -202,7 +202,7 @@ class ResourceProfile(
       }
     }
     if (taskResourcesToCheck.nonEmpty) {
-      throw QueryExecutionErrors.noExecutorResourceConfig(taskResourcesToCheck)
+      throw QueryExecutionErrors.noExecutorResourceConfigError(taskResourcesToCheck)
     }
     val limiting =
       if (taskLimit == -1) "cpu" else s"$limitingResource at $taskLimit tasks per executor"

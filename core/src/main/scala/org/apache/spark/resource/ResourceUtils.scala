@@ -25,7 +25,7 @@ import scala.util.control.NonFatal
 import org.json4s.DefaultFormats
 import org.json4s.jackson.JsonMethods._
 
-import org.apache.spark.Errors.QueryExecutionErrors
+import org.apache.spark.errors.QueryExecutionErrors
 import org.apache.spark.SparkConf
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.api.resource.ResourceDiscoveryPlugin
@@ -141,7 +141,7 @@ private[spark] object ResourceUtils extends Logging {
   def parseResourceRequest(sparkConf: SparkConf, resourceId: ResourceID): ResourceRequest = {
     val settings = sparkConf.getAllWithPrefix(resourceId.confPrefix).toMap
     val amount = settings.getOrElse(AMOUNT,
-      throw QueryExecutionErrors.specifyAmountForResource(resourceId)
+      throw QueryExecutionErrors.specifyAmountForResourceError(resourceId)
     ).toInt
     val discoveryScript = Optional.ofNullable(settings.get(DISCOVERY_SCRIPT).orNull)
     val vendor = Optional.ofNullable(settings.get(VENDOR).orNull)
@@ -152,8 +152,7 @@ private[spark] object ResourceUtils extends Logging {
     sparkConf.getAllWithPrefix(s"$componentName.$RESOURCE_PREFIX.").map { case (key, _) =>
       val index = key.indexOf('.')
       if (index < 0) {
-        throw QueryExecutionErrors.specifyAmountConfigForResource(key,
-          componentName, RESOURCE_PREFIX)
+        throw QueryExecutionErrors.AmountConfigForResourceError(key, componentName, RESOURCE_PREFIX)
       }
       key.substring(0, index)
     }.distinct.map(name => new ResourceID(componentName, name))
@@ -179,7 +178,7 @@ private[spark] object ResourceUtils extends Logging {
     val parts = if (doubleAmount <= 0.5) {
       Math.floor(1.0 / doubleAmount).toInt
     } else if (doubleAmount % 1 != 0) {
-      throw QueryExecutionErrors.conditionOfResourceAmount(doubleAmount)
+      throw QueryExecutionErrors.conditionOfResourceAmountError(doubleAmount)
     } else {
       1
     }
@@ -193,7 +192,7 @@ private[spark] object ResourceUtils extends Logging {
     listResourceIds(sparkConf, SPARK_TASK_PREFIX).map { resourceId =>
       val settings = sparkConf.getAllWithPrefix(resourceId.confPrefix).toMap
       val amountDouble = settings.getOrElse(AMOUNT,
-        throw QueryExecutionErrors.specifyAmountForResource(resourceId)
+        throw QueryExecutionErrors.specifyAmountForResourceError(resourceId)
       ).toDouble
       treqs.resource(resourceId.resourceName, amountDouble)
     }
@@ -205,7 +204,7 @@ private[spark] object ResourceUtils extends Logging {
     val rnamesAndAmounts = resourceIds.map { resourceId =>
       val settings = sparkConf.getAllWithPrefix(resourceId.confPrefix).toMap
       val amountDouble = settings.getOrElse(AMOUNT,
-        throw QueryExecutionErrors.specifyAmountForResource(resourceId)
+        throw QueryExecutionErrors.specifyAmountForResourceError(resourceId)
       ).toDouble
       (resourceId.resourceName, amountDouble)
     }
@@ -213,7 +212,7 @@ private[spark] object ResourceUtils extends Logging {
       val (amount, parts) = if (componentName.equalsIgnoreCase(SPARK_TASK_PREFIX)) {
         calculateAmountAndPartsForFraction(amountDouble)
       } else if (amountDouble % 1 != 0) {
-        throw QueryExecutionErrors.onlySupportFractionalResource(componentName)
+        throw QueryExecutionErrors.onlySupportFractionalResourceError(componentName)
       } else {
         (amountDouble.toInt, 1)
       }
@@ -236,7 +235,7 @@ private[spark] object ResourceUtils extends Logging {
       extract(json)
     } catch {
       case NonFatal(e) =>
-        throw QueryExecutionErrors.errorParsingResource(resourcesFile, e)
+        throw QueryExecutionErrors.errorParsingResourceError(resourcesFile, e)
     }
   }
 
@@ -392,13 +391,13 @@ private[spark] object ResourceUtils extends Logging {
         return riOption.get()
       }
     }
-    throw QueryExecutionErrors.returnResourceInformation(resourceRequest)
+    throw QueryExecutionErrors.returnResourceInformationError(resourceRequest)
   }
 
   def validateTaskCpusLargeEnough(sparkConf: SparkConf, execCores: Int, taskCpus: Int): Boolean = {
     // Number of cores per executor must meet at least one task requirement.
     if (execCores < taskCpus) {
-      throw QueryExecutionErrors.conditionOfNumberOfCores(execCores, taskCpus)
+      throw QueryExecutionErrors.conditionOfNumberOfCoresError(execCores, taskCpus)
     }
     true
   }
@@ -448,7 +447,7 @@ private[spark] object ResourceUtils extends Logging {
           s"number of runnable tasks per executor to: ${maxTaskPerExec}. Please adjust " +
           "your configuration."
         if (sparkConf.get(RESOURCES_WARNING_TESTING)) {
-          throw QueryExecutionErrors.adjustConfiguration(message)
+          throw QueryExecutionErrors.adjustConfigurationError(message)
         } else {
           logWarning(message)
         }
@@ -471,7 +470,7 @@ private[spark] object ResourceUtils extends Logging {
           s"number of runnable tasks per executor to: ${maxTaskPerExec}. Please adjust " +
           "your configuration."
         if (sparkConf.get(RESOURCES_WARNING_TESTING)) {
-          throw QueryExecutionErrors.adjustConfiguration(message)
+          throw QueryExecutionErrors.adjustConfigurationError(message)
         } else {
           logWarning(message)
         }

@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.spark.resource
 
 import scala.collection.mutable
 
-import org.apache.spark.Errors.QueryExecutionErrors
+import org.apache.spark.errors.QueryExecutionErrors
 
 /**
  * Trait used to help executor/worker allocate resources.
@@ -77,13 +76,13 @@ private[spark] trait ResourceAllocator {
   def acquire(addrs: Seq[String]): Unit = {
     addrs.foreach { address =>
       if (!addressAvailabilityMap.contains(address)) {
-        throw QueryExecutionErrors.acquireAnAddressNotExist(resourceName, address)
+        throw QueryExecutionErrors.acquireAnAddressNotExistError(resourceName, address)
       }
       val isAvailable = addressAvailabilityMap(address)
       if (isAvailable > 0) {
         addressAvailabilityMap(address) = addressAvailabilityMap(address) - 1
       } else {
-        throw QueryExecutionErrors.acquireAnAddressNotAvailable(resourceName, address)
+        throw QueryExecutionErrors.acquireAnAddressNotAvailableError(resourceName, address)
       }
     }
   }
@@ -96,13 +95,13 @@ private[spark] trait ResourceAllocator {
   def release(addrs: Seq[String]): Unit = {
     addrs.foreach { address =>
       if (!addressAvailabilityMap.contains(address)) {
-        throw QueryExecutionErrors.releaseAnAddressNotExist(resourceName, address)
+        throw QueryExecutionErrors.releaseAnAddressNotExistError(resourceName, address)
       }
       val isAvailable = addressAvailabilityMap(address)
       if (isAvailable < slotsPerAddress) {
         addressAvailabilityMap(address) = addressAvailabilityMap(address) + 1
       } else {
-        throw QueryExecutionErrors.releaseAnAddressNotAssigned(resourceName, address)
+        throw QueryExecutionErrors.releaseAnAddressNotAssignedError(resourceName, address)
       }
     }
   }
