@@ -24,8 +24,8 @@ import javax.annotation.concurrent.GuardedBy
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.Errors.QueryExecutionErrors
+import org.apache.spark.SparkConf
 import org.apache.spark.annotation.{Evolving, Since}
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._

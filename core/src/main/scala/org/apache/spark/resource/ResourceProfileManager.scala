@@ -21,8 +21,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import scala.collection.mutable.HashMap
 
-import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.Errors.QueryExecutionErrors
+import org.apache.spark.SparkConf
 import org.apache.spark.annotation.Evolving
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config.Tests._
