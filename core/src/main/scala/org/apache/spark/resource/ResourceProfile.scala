@@ -24,9 +24,9 @@ import javax.annotation.concurrent.GuardedBy
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-import org.apache.spark.errors.QueryExecutionErrors
 import org.apache.spark.SparkConf
 import org.apache.spark.annotation.{Evolving, Since}
+import org.apache.spark.errors.QueryExecutionErrors
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config._
 import org.apache.spark.internal.config.Python.PYSPARK_EXECUTOR_MEMORY

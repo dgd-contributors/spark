@@ -21,9 +21,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock
 
 import scala.collection.mutable.HashMap
 
-import org.apache.spark.errors.QueryExecutionErrors
 import org.apache.spark.SparkConf
 import org.apache.spark.annotation.Evolving
+import org.apache.spark.errors.QueryExecutionErrors
 import org.apache.spark.internal.Logging
 import org.apache.spark.internal.config.Tests._
 import org.apache.spark.scheduler.{LiveListenerBus, SparkListenerResourceProfileAdded}
