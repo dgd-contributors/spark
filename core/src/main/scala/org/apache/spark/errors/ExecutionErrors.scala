@@ -30,13 +30,6 @@ import org.apache.spark.deploy.rest.{SubmitRestConnectionException, SubmitRestMi
 import org.apache.spark.internal.config.History
 import org.apache.spark.scheduler.HaltReplayException
 
-
-
-/**
- * Object for grouping error messages from (most) exceptions thrown during query execution.
- * This does not include exceptions thrown during the eager execution of commands, which are
- * grouped into [[CompilationErrors]].
- */
 private[spark] object ExecutionErrors {
   def failedGetIntoAcceptableClusterStateError(e: TimeoutException): Throwable = {
     new RuntimeException("Failed to get into acceptable cluster state after 2 min.", e)
