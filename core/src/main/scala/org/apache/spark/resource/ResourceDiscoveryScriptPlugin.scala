@@ -57,7 +57,7 @@ class ResourceDiscoveryScriptPlugin extends ResourceDiscoveryPlugin with Logging
       throw QueryExecutionErrors.specifyADiscoveryScriptError(resourceName)
     }
     if (!result.name.equals(resourceName)) {
-      throw QueryExecutionErrors.runningOtherResourceError(script, result, resourceName)
+      throw QueryExecutionErrors.runningOtherResourceError(script, result.name, resourceName)
     }
     Optional.of(result)
   }

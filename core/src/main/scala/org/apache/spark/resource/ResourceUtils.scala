@@ -141,7 +141,7 @@ private[spark] object ResourceUtils extends Logging {
   def parseResourceRequest(sparkConf: SparkConf, resourceId: ResourceID): ResourceRequest = {
     val settings = sparkConf.getAllWithPrefix(resourceId.confPrefix).toMap
     val amount = settings.getOrElse(AMOUNT,
-      throw QueryExecutionErrors.specifyAmountForResourceError(resourceId)
+      throw QueryExecutionErrors.specifyAmountForResourceError(resourceId.resourceName)
     ).toInt
     val discoveryScript = Optional.ofNullable(settings.get(DISCOVERY_SCRIPT).orNull)
     val vendor = Optional.ofNullable(settings.get(VENDOR).orNull)
@@ -192,7 +192,7 @@ private[spark] object ResourceUtils extends Logging {
     listResourceIds(sparkConf, SPARK_TASK_PREFIX).map { resourceId =>
       val settings = sparkConf.getAllWithPrefix(resourceId.confPrefix).toMap
       val amountDouble = settings.getOrElse(AMOUNT,
-        throw QueryExecutionErrors.specifyAmountForResourceError(resourceId)
+        throw QueryExecutionErrors.specifyAmountForResourceError(resourceId.resourceName)
       ).toDouble
       treqs.resource(resourceId.resourceName, amountDouble)
     }
@@ -204,7 +204,7 @@ private[spark] object ResourceUtils extends Logging {
     val rnamesAndAmounts = resourceIds.map { resourceId =>
       val settings = sparkConf.getAllWithPrefix(resourceId.confPrefix).toMap
       val amountDouble = settings.getOrElse(AMOUNT,
-        throw QueryExecutionErrors.specifyAmountForResourceError(resourceId)
+        throw QueryExecutionErrors.specifyAmountForResourceError(resourceId.resourceName)
       ).toDouble
       (resourceId.resourceName, amountDouble)
     }
@@ -235,7 +235,7 @@ private[spark] object ResourceUtils extends Logging {
       extract(json)
     } catch {
       case NonFatal(e) =>
-        throw QueryExecutionErrors.errorParsingResourceError(resourcesFile, e)
+        throw QueryExecutionErrors.errorParsingResource(resourcesFile, e)
     }
   }
 
@@ -391,7 +391,7 @@ private[spark] object ResourceUtils extends Logging {
         return riOption.get()
       }
     }
-    throw QueryExecutionErrors.returnResourceInformationError(resourceRequest)
+    throw QueryExecutionErrors.returnResourceInformationError({resourceRequest.id.resourceName})
   }
 
   def validateTaskCpusLargeEnough(sparkConf: SparkConf, execCores: Int, taskCpus: Int): Boolean = {
@@ -443,11 +443,11 @@ private[spark] object ResourceUtils extends Logging {
         val resourceNumSlots = Math.floor(cores/taskCpus).toInt
         if (sparkConf.get(RESOURCES_WARNING_TESTING)) {
           throw QueryExecutionErrors.adjustConfigurationError(
-            s"The configuration of cores (exec = ${cores} " +
-            s"task = ${taskCpus}, runnable tasks = ${resourceNumSlots}) will " +
-            s"result in wasted resources due to resource ${limitingResource} limiting the " +
-            s"number of runnable tasks per executor to: ${maxTaskPerExec}. Please adjust " +
-            "your configuration.")
+            cores,
+            taskCpus,
+            resourceNumSlots,
+            limitingResource,
+            maxTaskPerExec)
         } else {
           logWarning( s"The configuration of cores (exec = ${cores} " +
             s"task = ${taskCpus}, runnable tasks = ${resourceNumSlots}) will " +
@@ -469,12 +469,12 @@ private[spark] object ResourceUtils extends Logging {
         val resourceNumSlots = Math.floor(execAmount * numParts / taskAmount).toInt
         if (sparkConf.get(RESOURCES_WARNING_TESTING)) {
           throw QueryExecutionErrors.adjustConfigurationError(
-            s"The configuration of resource: ${treq.resourceName} " +
-            s"(exec = ${execAmount}, task = ${taskReqStr}, " +
-            s"runnable tasks = ${resourceNumSlots}) will " +
-            s"result in wasted resources due to resource ${limitingResource} limiting the " +
-            s"number of runnable tasks per executor to: ${maxTaskPerExec}. Please adjust " +
-            "your configuration.")
+            treq.resourceName,
+            execAmount,
+            taskReqStr,
+            resourceNumSlots,
+            limitingResource,
+            maxTaskPerExec)
         } else {
           logWarning(s"The configuration of resource: ${treq.resourceName} " +
             s"(exec = ${execAmount}, task = ${taskReqStr}, " +

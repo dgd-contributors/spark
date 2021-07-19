@@ -20,12 +20,9 @@ package org.apache.spark.errors
 import java.io.File
 import java.util.Optional
 
-import scala.collection.mutable
-
 import org.json4s.JsonAST.JValue
 
 import org.apache.spark.SparkException
-import org.apache.spark.resource.{ExecutorResourceRequest, ResourceID, ResourceInformation, ResourceRequest, TaskResourceRequest}
 
 private[spark] object QueryExecutionErrors {
   def acquireAnAddressNotExistError(resourceName: String, address: String): Throwable = {
@@ -48,8 +45,8 @@ private[spark] object QueryExecutionErrors {
       s"address $address is not assigned.")
   }
 
-  def specifyAmountForResourceError(resourceId: ResourceID): Throwable = {
-    new SparkException(s"You must specify an amount for ${resourceId.resourceName}")
+  def specifyAmountForResourceError(url: String): Throwable = {
+    new SparkException(s"You must specify an amount for $url")
   }
 
   def AmountConfigForResourceError(
@@ -69,6 +66,7 @@ private[spark] object QueryExecutionErrors {
     new SparkException(s"Only tasks support fractional resources," +
       s" please check your $componentName settings")
   }
+
   def specifyADiscoveryScriptError(resourceName: String): Throwable = {
     new SparkException(s"User is expecting to use resource: $resourceName, but " +
       "didn't specify a discovery script!")
@@ -76,17 +74,17 @@ private[spark] object QueryExecutionErrors {
 
   def runningOtherResourceError(
       script: Optional[String],
-      result: ResourceInformation,
+      url: String,
       resourceName: String): Throwable = {
     new SparkException(s"Error running the resource discovery script ${script.get}: " +
-      s"script returned resource name ${result.name} and we were expecting $resourceName.")
+      s"script returned resource name $url and we were expecting $resourceName.")
   }
 
   def conditionOfResourceError(
       rName: String,
-      execReq: ExecutorResourceRequest,
+      num: Long,
       taskReq: Double): Throwable = {
-    new SparkException(s"The executor resource: $rName, amount: ${execReq.amount}" +
+    new SparkException(s"The executor resource: $rName, amount: $num" +
       s"needs to be >= the task resource request amount of $taskReq")
   }
 
@@ -99,10 +97,9 @@ private[spark] object QueryExecutionErrors {
     new SparkException(s"Resource $resource doesn't exist in profile id: $id")
   }
 
-  def noExecutorResourceConfigError(
-      taskResourcesToCheck: mutable.HashMap[String, TaskResourceRequest]): Throwable = {
+  def noExecutorResourceConfigError(url: String): Throwable = {
     new SparkException("No executor resource configs were not specified for the " +
-      s"following task configs: ${taskResourcesToCheck.keys.mkString(",")}")
+      s"following task configs: $url")
   }
 
   def resourceProfileSupportError(): Throwable = {
@@ -119,25 +116,49 @@ private[spark] object QueryExecutionErrors {
       s"the number of cpus per task = $taskCpus.")
   }
 
-  def adjustConfigurationError(message: String): Throwable = {
-    new SparkException(message)
+  def adjustConfigurationError(
+      uri: String,
+      execAmount: Long,
+      taskReqStr: String,
+      resourceNumSlots: Int,
+      limitingResource: String,
+      maxTaskPerExec: Int): Throwable = {
+    new SparkException(s"The configuration of resource: $uri " +
+      s"(exec = ${execAmount}, task = ${taskReqStr}, " +
+      s"runnable tasks = ${resourceNumSlots}) will " +
+      s"result in wasted resources due to resource ${limitingResource} limiting the " +
+      s"number of runnable tasks per executor to: ${maxTaskPerExec}. Please adjust " +
+      "your configuration.")
   }
 
-  def returnResourceInformationError(resourceRequest: ResourceRequest): Throwable = {
+  def adjustConfigurationError(
+      cores: Int,
+      taskCpus: Int,
+      resourceNumSlots: Int,
+      limitingResource: String,
+       maxTaskPerExec: Int): Throwable = {
+    new SparkException(s"The configuration of cores (exec = ${cores} " +
+      s"task = ${taskCpus}, runnable tasks = ${resourceNumSlots}) will " +
+      s"result in wasted resources due to resource ${limitingResource} limiting the " +
+      s"number of runnable tasks per executor to: ${maxTaskPerExec}. Please adjust " +
+      "your configuration.")
+  }
+
+  def returnResourceInformationError(url: String): Throwable = {
     new SparkException(s"None of the discovery plugins returned ResourceInformation for " +
-      s"${resourceRequest.id.resourceName}")
+      s"$url")
   }
 
-  def errorParseJsonError(json: String, exampleJson: String, e: Throwable): Throwable = {
+  def errorParseJson(json: String, exampleJson: String, e: Throwable): Throwable = {
     new SparkException(s"Error parsing JSON into ResourceInformation:\n$json\n" +
       s"Here is a correct example: $exampleJson.", e)
   }
 
-  def errorParseJsonError(json: JValue, e: Throwable): Throwable = {
+  def errorParseJson(json: JValue, e: Throwable): Throwable = {
     new SparkException(s"Error parsing JSON into ResourceInformation:\n$json\n", e)
   }
 
-  def errorParsingResourceError(resourcesFile: String, e: Throwable): Throwable = {
+  def errorParsingResource(resourcesFile: String, e: Throwable): Throwable = {
     new SparkException(s"Error parsing resources file $resourcesFile", e)
   }
 }

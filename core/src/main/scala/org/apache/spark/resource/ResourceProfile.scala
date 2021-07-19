@@ -186,7 +186,7 @@ class ResourceProfile(
       numPartsPerResourceMap(rName) = 1
       if (taskReq > 0.0) {
         if (taskReq > execReq.amount) {
-          throw QueryExecutionErrors.conditionOfResourceError(rName, execReq, taskReq)
+          throw QueryExecutionErrors.conditionOfResourceError(rName, execReq.amount, taskReq)
         }
         val (numPerTask, parts) = ResourceUtils.calculateAmountAndPartsForFraction(taskReq)
         numPartsPerResourceMap(rName) = parts
@@ -202,7 +202,8 @@ class ResourceProfile(
       }
     }
     if (taskResourcesToCheck.nonEmpty) {
-      throw QueryExecutionErrors.noExecutorResourceConfigError(taskResourcesToCheck)
+      throw QueryExecutionErrors.noExecutorResourceConfigError(
+        {taskResourcesToCheck.keys.mkString(",")})
     }
     val limiting =
       if (taskLimit == -1) "cpu" else s"$limitingResource at $taskLimit tasks per executor"
