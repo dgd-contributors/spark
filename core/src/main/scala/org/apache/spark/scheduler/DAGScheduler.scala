@@ -445,7 +445,7 @@ private[spark] class DAGScheduler(
         !traverseParentRDDsWithinStage(rdd, (r: RDD[_]) =>
           r.getNumPartitions == numTasksInStage &&
           r.dependencies.count(_.rdd.isBarrier()) <= 1)) {
-      throw ExecutionErrors.barrierStageWithRDDChainPatternError()
+      throw ExecutionErrors.barrierStageWithRDDChainPattern()
     }
   }
 

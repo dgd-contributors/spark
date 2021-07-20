@@ -34,7 +34,7 @@ private[spark] object ExecutionErrors {
     new NoSuchElementException(id)
   }
 
-  def barrierStageWithRDDChainPatternError(): Throwable = {
+  def barrierStageWithRDDChainPattern(): Throwable = {
     new BarrierJobUnsupportedRDDChainException
   }
 
