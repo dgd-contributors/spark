@@ -25,14 +25,12 @@ import java.time.{DateTimeException, LocalDate}
 import java.time.temporal.ChronoField
 import java.util.ConcurrentModificationException
 import java.util.concurrent.TimeoutException
-
 import com.fasterxml.jackson.core.{JsonParser, JsonToken}
 import org.apache.hadoop.fs.{FileAlreadyExistsException, FileStatus, Path}
 import org.apache.hadoop.fs.permission.FsPermission
 import org.codehaus.commons.compiler.CompileException
 import org.codehaus.janino.InternalCompilerException
-
-import org.apache.spark.{Partition, SparkArithmeticException, SparkArrayIndexOutOfBoundsException, SparkException, SparkIllegalArgumentException, SparkIllegalStateException, SparkNoSuchElementException, SparkNumberFormatException, SparkUnsupportedOperationException, SparkUpgradeException}
+import org.apache.spark.{Partition, SparkArithmeticException, SparkException, SparkThrowableHelper, SparkUpgradeException}
 import org.apache.spark.executor.CommitDeniedException
 import org.apache.spark.launcher.SparkLauncher
 import org.apache.spark.memory.SparkOutOfMemoryError
@@ -46,7 +44,7 @@ import org.apache.spark.sql.catalyst.plans.JoinType
 import org.apache.spark.sql.catalyst.plans.logical.{DomainJoin, LogicalPlan}
 import org.apache.spark.sql.catalyst.plans.logical.statsEstimation.ValueInterval
 import org.apache.spark.sql.catalyst.trees.TreeNode
-import org.apache.spark.sql.catalyst.util.{sideBySide, BadRecordException, FailFastMode}
+import org.apache.spark.sql.catalyst.util.{BadRecordException, FailFastMode, sideBySide}
 import org.apache.spark.sql.connector.catalog.{CatalogNotFoundException, Identifier, Table, TableProvider}
 import org.apache.spark.sql.connector.catalog.CatalogV2Implicits._
 import org.apache.spark.sql.connector.expressions.Transform
@@ -67,87 +65,73 @@ import org.apache.spark.util.CircularBuffer
 object QueryExecutionErrors {
 
   def columnChangeUnsupportedError(): Throwable = {
-    new SparkUnsupportedOperationException(errorClass = "UNSUPPORTED_CHANGE_COLUMN",
-      messageParameters = Array.empty)
+    new UnsupportedOperationException("Please add an implementation for a column change here")
   }
 
   def logicalHintOperatorNotRemovedDuringAnalysisError(): Throwable = {
-    new SparkIllegalStateException(errorClass = "LOGICAL_HINT_OPERATOR_NOT_REMOVE_DURING_ANALYSIS",
-      messageParameters = Array.empty)
+    new IllegalStateException(
+      "Internal error: logical hint operator should have been removed during analysis")
   }
 
   def cannotEvaluateExpressionError(expression: Expression): Throwable = {
-    new SparkUnsupportedOperationException(errorClass = "CAN_NOT_EVALUATE_EXPRESSION",
-      messageParameters = Array("", expression.toString))
+    new UnsupportedOperationException(s"Cannot evaluate expression: $expression")
   }
 
   def cannotGenerateCodeForExpressionError(expression: Expression): Throwable = {
-    new SparkUnsupportedOperationException(errorClass = "CAN_NOT_GENERATE_CODE_FOR_EXPRESSION",
-      messageParameters = Array(expression.toString))
+    new UnsupportedOperationException(s"Cannot generate code for expression: $expression")
   }
 
   def cannotTerminateGeneratorError(generator: UnresolvedGenerator): Throwable = {
-    new SparkUnsupportedOperationException(errorClass = "CAN_NOT_TERMINATE_GENERATOR",
-      messageParameters = Array(generator.toString))
+    new UnsupportedOperationException(s"Cannot terminate expression: $generator")
   }
 
   def castingCauseOverflowError(t: Any, targetType: String): ArithmeticException = {
-    new SparkArithmeticException (errorClass = "CAST_CAUSE_OVERFLOW",
-      messageParameters = Array(t.toString, targetType))
+    new ArithmeticException(s"Casting $t to $targetType causes overflow")
   }
 
   def cannotChangeDecimalPrecisionError(
       value: Decimal, decimalPrecision: Int, decimalScale: Int): ArithmeticException = {
-    new SparkArithmeticException(errorClass = "CAN_NOT_CHANGE_DECIMAL_PRECISION",
-      messageParameters = Array(value.toDebugString,
-        decimalPrecision.toString, decimalScale.toString))
+    new ArithmeticException(s"${value.toDebugString} cannot be represented as " +
+      s"Decimal($decimalPrecision, $decimalScale).")
   }
 
   def invalidInputSyntaxForNumericError(s: UTF8String): NumberFormatException = {
-    new SparkNumberFormatException(errorClass = "INVALID_INPUT_SYNTAX_FOR_NUMERIC",
-      messageParameters = Array(s.toString))
+    new NumberFormatException(s"invalid input syntax for type numeric: $s")
   }
 
   def cannotCastFromNullTypeError(to: DataType): Throwable = {
-    new SparkException(errorClass = "CAN_NOT_CAST_DATATYPE",
-      messageParameters = Array(NullType.typeName, to.typeName), null)
+    new SparkException(s"should not directly cast from NullType to $to.")
   }
 
   def cannotCastError(from: DataType, to: DataType): Throwable = {
-    new SparkException(errorClass = "CAN_NOT_CAST_DATATYPE",
-      messageParameters = Array(from.typeName, to.typeName), null)
+    new SparkException(s"Cannot cast $from to $to.")
   }
 
   def cannotParseDecimalError(): Throwable = {
-    new SparkIllegalStateException(errorClass = "CAN_NOT_PARSE_DECIMAL",
-      messageParameters = Array.empty)
+    new IllegalArgumentException("Cannot parse any decimal")
   }
 
   def simpleStringWithNodeIdUnsupportedError(nodeName: String): Throwable = {
-    new SparkUnsupportedOperationException(errorClass = "UNSUPPORTED_SIMPLE_STRING_WITH_NODEID",
-      messageParameters = Array(nodeName))
+    new UnsupportedOperationException(s"$nodeName does not implement simpleStringWithNodeId")
   }
 
   def evaluateUnevaluableAggregateUnsupportedError(
       methodName: String, unEvaluable: UnevaluableAggregate): Throwable = {
-    new SparkUnsupportedOperationException(errorClass = "CAN_NOT_EVALUATE_EXPRESSION",
-      messageParameters = Array(methodName, unEvaluable.toString))
+    new UnsupportedOperationException(s"Cannot evaluate $methodName: $unEvaluable")
   }
 
   def dataTypeUnsupportedError(dt: DataType): Throwable = {
-    new SparkException(errorClass = "UNSUPPORTED_DATATYPE",
-      messageParameters = Array(dt.typeName, ""), null)
+    new SparkException(s"Unsupported data type $dt")
   }
 
   def dataTypeUnsupportedError(dataType: String, failure: String): Throwable = {
-    new SparkIllegalArgumentException(errorClass = "UNSUPPORTED_DATATYPE",
-      messageParameters = Array(dataType, failure))
+    new IllegalArgumentException(s"Unsupported dataType: $dataType, $failure")
   }
 
   def failedExecuteUserDefinedFunctionError(funcCls: String, inputTypes: String,
       outputType: String, e: Throwable): Throwable = {
-    new SparkException(errorClass = "FAILED_EXECUTE_UDF",
-      messageParameters = Array(funcCls, inputTypes, outputType), e)
+    new SparkException(
+      s"Failed to execute user defined function ($funcCls: ($inputTypes) => $outputType)", e)
   }
 
   def divideByZeroError(): ArithmeticException = {
@@ -155,18 +139,15 @@ object QueryExecutionErrors {
   }
 
   def invalidArrayIndexError(index: Int, numElements: Int): ArrayIndexOutOfBoundsException = {
-    new SparkArrayIndexOutOfBoundsException(errorClass = "INVALID_ARRAY_INDEX",
-      messageParameters = Array(index.toString, numElements.toString))
+    new ArrayIndexOutOfBoundsException(s"Invalid index: $index, numElements: $numElements")
   }
 
   def mapKeyNotExistError(key: Any): NoSuchElementException = {
-    new SparkNoSuchElementException(errorClass = "MAP_KEY_NOT_EXIST",
-      messageParameters = Array(key.toString))
+    new NoSuchElementException(s"Key $key does not exist.")
   }
 
   def rowFromCSVParserNotExpectedError(): Throwable = {
-    new SparkIllegalArgumentException(errorClass = "ROW_FROM_CSV_PARSER_NOT_EXPECTED",
-      messageParameters = Array.empty)
+    new IllegalArgumentException("Expected one row from CSV parser.")
   }
 
   def inputTypeUnsupportedError(dataType: DataType): Throwable = {
@@ -363,48 +344,51 @@ object QueryExecutionErrors {
 
   def unableToDropTableAsFailedToDeleteDirectoryError(
       table: String, dir: Path, e: IOException): Throwable = {
-    new SparkException(s"Unable to drop table $table as failed " +
-      s"to delete its directory $dir", e)
-    new SparkException("", Array(), e)
+    new SparkException("UNABLE_DROP_TABLE_AS_FAILED_DELETE_DIRECTORY",
+      Array(table, dir.toString), e)
   }
 
   def unableToRenameTableAsFailedToRenameDirectoryError(
       oldName: String, newName: String, oldDir: Path, e: IOException): Throwable = {
-    new SparkException(s"Unable to rename table $oldName to $newName as failed " +
-      s"to rename its directory $oldDir", e)
-    new SparkException("", Array(), e)
+    new SparkException("UNABLE_RENAME_TABLE_AS_FAILED_RENAME_DIRECTORY",
+      Array(oldName, newName, oldDir.toString), e)
   }
 
   def unableToCreatePartitionPathError(partitionPath: Path, e: IOException): Throwable = {
-    new SparkException(s"Unable to create partition path $partitionPath", e)
-    new SparkException("", Array(), e)
+    new SparkException("UNABLE_CREATE_PARTITION", Array(partitionPath.toString), e)
   }
 
   def unableToRenamePartitionPathError(oldPartPath: Path, e: IOException): Throwable = {
-    new SparkException(s"Unable to rename partition path $oldPartPath", e)
-    new SparkException("", Array(), e)
+    new SparkException("UNABLE_RENAME_PARTITION", Array(oldPartPath), e)
   }
 
   def methodNotImplementedError(methodName: String): Throwable = {
-    new UnsupportedOperationException(s"$methodName is not implemented")
+    new UnsupportedOperationException(
+      SparkThrowableHelper.getMessage("METHOD_NOT_IMPLEMENTED", Array(methodName)))
   }
 
   def tableStatsNotSpecifiedError(): Throwable = {
-    new IllegalStateException("table stats must be specified.")
+    new IllegalStateException(
+      SparkThrowableHelper.getMessage("TABLE_STATS_MUST_SPECIFIED", Array.empty))
   }
 
   def unaryMinusCauseOverflowError(originValue: AnyVal): ArithmeticException = {
-    new ArithmeticException(s"- $originValue caused overflow.")
+    new ArithmeticException(
+      SparkThrowableHelper.getMessage(
+        "UNARY_MINUS_CAUSE_OVERFLOW",
+        Array(originValue.toString)))
   }
 
   def binaryArithmeticCauseOverflowError(
       eval1: Short, symbol: String, eval2: Short): ArithmeticException = {
-    new ArithmeticException(s"$eval1 $symbol $eval2 caused overflow.")
+    new ArithmeticException(
+      SparkThrowableHelper.getMessage(
+        "BINARY_ARITHMETIC_CAUSE_OVERFLOW",
+        Array(eval1.toString, symbol, eval2.toString)))
   }
 
   def failedSplitSubExpressionMsg(length: Int): String = {
-    "Failed to split subexpression code into small functions because " +
-      s"the parameter length of at least one split function went over the JVM limit: $length"
+    SparkThrowableHelper.getMessage("FAILED_SPLIT_SUB_EXPRESSION_MSG", Array(length.toString))
   }
 
   def failedSplitSubExpressionError(length: Int): Throwable = {
@@ -412,7 +396,7 @@ object QueryExecutionErrors {
   }
 
   def failedToCompileMsg(e: Exception): String = {
-    s"failed to compile: $e"
+    SparkThrowableHelper.getMessage("FAILED_COMPILE_MSG", Array(e.toString))
   }
 
   def internalCompilerError(e: InternalCompilerException): Throwable = {
@@ -424,15 +408,16 @@ object QueryExecutionErrors {
   }
 
   def unsupportedTableChangeError(e: IllegalArgumentException): Throwable = {
-    new SparkException(s"Unsupported table change: ${e.getMessage}", e)
+    new SparkException("UNSUPPORTED_TABLE_CHANGE", Array(e.getMessage), e)
   }
 
   def notADatasourceRDDPartitionError(split: Partition): Throwable = {
-    new SparkException(s"[BUG] Not a DataSourceRDDPartition: $split")
+    new SparkException("NOT_A_DATA_SOURCE_RDD_PARTITION", Array(split.toString), null)
   }
 
   def dataPathNotSpecifiedError(): Throwable = {
-    new IllegalArgumentException("'path' is not specified")
+    new IllegalArgumentException(
+      SparkThrowableHelper.getMessage("DATA_PATH_NOT_SPECIFIED", Array.empty))
   }
 
   def createStreamingSourceNotSpecifySchemaError(): Throwable = {
