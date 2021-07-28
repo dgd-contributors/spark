@@ -124,5 +124,85 @@
   "WRITING_JOB_ABORTED" : {
     "message" : [ "Writing job aborted" ],
     "sqlState" : "40000"
+  },
+  "UNABLE_CREATE_DATABASE_AS_FAILED_CREATE_DIRECTORY" : {
+    "message" : [ "Unable to create database %s as failed to create its directory %s" ],
+    "sqlState" : ""
+  },
+  "UNABLE_DROP_DATABASE_AS_FAILED_DELETE_DIRECTORY" : {
+    "message" : [ "Unable to drop database %s as failed to delete its directory %s" ],
+    "sqlState" : ""
+  },
+  "UNABLE_CREATE_TABLE_AS_FAILED_CREATE_DIRECTORY" : {
+    "message" : [ "Unable to create table %s as failed to create its directory %s" ],
+    "sqlState" : ""
+  },
+  "UNABLE_DELETE_PARTITION" : {
+    "message" : [ "Unable to delete partition path %s" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
+  },
+  "" : {
+    "message" : [ "" ],
+    "sqlState" : ""
   }
 }

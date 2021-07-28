@@ -341,44 +341,48 @@ object QueryExecutionErrors {
 
   def unableToCreateDatabaseAsFailedToCreateDirectoryError(
       dbDefinition: CatalogDatabase, e: IOException): Throwable = {
-    new SparkException(s"Unable to create database ${dbDefinition.name} as failed " +
-      s"to create its directory ${dbDefinition.locationUri}", e)
+    new SparkException("UNABLE_CREATE_DATABASE_AS_FAILED_CREATE_DIRECTORY",
+      Array(dbDefinition.name, dbDefinition.locationUri.toString), e)
   }
 
   def unableToDropDatabaseAsFailedToDeleteDirectoryError(
       dbDefinition: CatalogDatabase, e: IOException): Throwable = {
-    new SparkException(s"Unable to drop database ${dbDefinition.name} as failed " +
-      s"to delete its directory ${dbDefinition.locationUri}", e)
+    new SparkException("UNABLE_DROP_DATABASE_AS_FAILED_DELETE_DIRECTORY",
+      Array(dbDefinition.name, dbDefinition.locationUri.toString), e)
   }
 
   def unableToCreateTableAsFailedToCreateDirectoryError(
       table: String, defaultTableLocation: Path, e: IOException): Throwable = {
-    new SparkException(s"Unable to create table $table as failed " +
-      s"to create its directory $defaultTableLocation", e)
+    new SparkException("UNABLE_CREATE_TABLE_AS_FAILED_CREATE_DIRECTORY",
+      Array(table, defaultTableLocation.toString), e)
   }
 
   def unableToDeletePartitionPathError(partitionPath: Path, e: IOException): Throwable = {
-    new SparkException(s"Unable to delete partition path $partitionPath", e)
+    new SparkException("UNABLE_DELETE_PARTITION", Array(partitionPath.toString), e)
   }
 
   def unableToDropTableAsFailedToDeleteDirectoryError(
       table: String, dir: Path, e: IOException): Throwable = {
     new SparkException(s"Unable to drop table $table as failed " +
       s"to delete its directory $dir", e)
+    new SparkException("", Array(), e)
   }
 
   def unableToRenameTableAsFailedToRenameDirectoryError(
       oldName: String, newName: String, oldDir: Path, e: IOException): Throwable = {
     new SparkException(s"Unable to rename table $oldName to $newName as failed " +
       s"to rename its directory $oldDir", e)
+    new SparkException("", Array(), e)
   }
 
   def unableToCreatePartitionPathError(partitionPath: Path, e: IOException): Throwable = {
     new SparkException(s"Unable to create partition path $partitionPath", e)
+    new SparkException("", Array(), e)
   }
 
   def unableToRenamePartitionPathError(oldPartPath: Path, e: IOException): Throwable = {
     new SparkException(s"Unable to rename partition path $oldPartPath", e)
+    new SparkException("", Array(), e)
   }
 
   def methodNotImplementedError(methodName: String): Throwable = {
