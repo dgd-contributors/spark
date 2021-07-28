@@ -362,7 +362,7 @@ object QueryExecutionErrors {
   }
 
   def unableToRenamePartitionPathError(oldPartPath: Path, e: IOException): Throwable = {
-    new SparkException("UNABLE_RENAME_PARTITION", Array(oldPartPath), e)
+    new SparkException("UNABLE_RENAME_PARTITION", Array(oldPartPath.toString), e)
   }
 
   def methodNotImplementedError(methodName: String): Throwable = {
