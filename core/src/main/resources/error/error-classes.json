@@ -177,9 +177,9 @@
     "sqlState" : "42000"
   },
   "NOT_A_DATA_SOURCE_RDD_PARTITION" : {
-    "message" : [ "[BUG] Not a DataSourceRDDPartition: %s" ],
+    "message" : [ "[BUG] Not a DataSourceRDDPartition: %s" ]
   },
   "DATA_PATH_NOT_SPECIFIED" : {
-    "message" : [ "'path' is not specified" ],
+    "message" : [ "'path' is not specified" ]
   }
 }
