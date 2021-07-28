@@ -30,10 +30,11 @@ import org.apache.hadoop.fs.{FileAlreadyExistsException, FileStatus, Path}
 import org.apache.hadoop.fs.permission.FsPermission
 import org.codehaus.commons.compiler.CompileException
 import org.codehaus.janino.InternalCompilerException
-import org.apache.spark.{Partition, SparkArithmeticException, SparkException, SparkThrowableHelper, SparkUpgradeException}
+import org.apache.spark.{Partition, SparkArithmeticException, SparkException, SparkIllegalArgumentException, SparkIllegalStateException, SparkThrowableHelper, SparkUnsupportedOperationException, SparkUpgradeException}
 import org.apache.spark.executor.CommitDeniedException
 import org.apache.spark.launcher.SparkLauncher
 import org.apache.spark.memory.SparkOutOfMemoryError
+import org.apache.spark.sql.{SparkCompileException, SparkInternalCompilerException}
 import org.apache.spark.sql.catalyst.ScalaReflection.Schema
 import org.apache.spark.sql.catalyst.WalkedTypePath
 import org.apache.spark.sql.catalyst.analysis.UnresolvedGenerator
@@ -363,28 +364,21 @@ object QueryExecutionErrors {
   }
 
   def methodNotImplementedError(methodName: String): Throwable = {
-    new UnsupportedOperationException(
-      SparkThrowableHelper.getMessage("METHOD_NOT_IMPLEMENTED", Array(methodName)))
+    new SparkUnsupportedOperationException("METHOD_NOT_IMPLEMENTED", Array(methodName))
   }
 
   def tableStatsNotSpecifiedError(): Throwable = {
-    new IllegalStateException(
-      SparkThrowableHelper.getMessage("TABLE_STATS_MUST_SPECIFIED", Array.empty))
+    new SparkIllegalStateException("TABLE_STATS_MUST_SPECIFIED", Array.empty)
   }
 
   def unaryMinusCauseOverflowError(originValue: AnyVal): ArithmeticException = {
-    new ArithmeticException(
-      SparkThrowableHelper.getMessage(
-        "UNARY_MINUS_CAUSE_OVERFLOW",
-        Array(originValue.toString)))
+    new SparkArithmeticException("UNARY_MINUS_CAUSE_OVERFLOW", Array(originValue.toString))
   }
 
   def binaryArithmeticCauseOverflowError(
       eval1: Short, symbol: String, eval2: Short): ArithmeticException = {
-    new ArithmeticException(
-      SparkThrowableHelper.getMessage(
-        "BINARY_ARITHMETIC_CAUSE_OVERFLOW",
-        Array(eval1.toString, symbol, eval2.toString)))
+    new SparkArithmeticException("BINARY_ARITHMETIC_CAUSE_OVERFLOW",
+      Array(eval1.toString, symbol, eval2.toString))
   }
 
   def failedSplitSubExpressionMsg(length: Int): String = {
@@ -392,7 +386,7 @@ object QueryExecutionErrors {
   }
 
   def failedSplitSubExpressionError(length: Int): Throwable = {
-    new IllegalStateException(failedSplitSubExpressionMsg(length))
+    new SparkIllegalStateException("FAILED_SPLIT_SUB_EXPRESSION_MSG", Array(length.toString))
   }
 
   def failedToCompileMsg(e: Exception): String = {
@@ -400,11 +394,11 @@ object QueryExecutionErrors {
   }
 
   def internalCompilerError(e: InternalCompilerException): Throwable = {
-    new InternalCompilerException(failedToCompileMsg(e), e)
+    new SparkInternalCompilerException("FAILED_COMPILE_MSG", Array(e.toString))
   }
 
   def compilerError(e: CompileException): Throwable = {
-    new CompileException(failedToCompileMsg(e), e.getLocation)
+    new SparkCompileException("FAILED_COMPILE_MSG", Array(e.toString), e)
   }
 
   def unsupportedTableChangeError(e: IllegalArgumentException): Throwable = {
@@ -416,8 +410,7 @@ object QueryExecutionErrors {
   }
 
   def dataPathNotSpecifiedError(): Throwable = {
-    new IllegalArgumentException(
-      SparkThrowableHelper.getMessage("DATA_PATH_NOT_SPECIFIED", Array.empty))
+    new SparkIllegalArgumentException("DATA_PATH_NOT_SPECIFIED", Array.empty)
   }
 
   def createStreamingSourceNotSpecifySchemaError(): Throwable = {
