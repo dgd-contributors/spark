@@ -126,83 +126,60 @@
     "sqlState" : "40000"
   },
   "UNABLE_CREATE_DATABASE_AS_FAILED_CREATE_DIRECTORY" : {
-    "message" : [ "Unable to create database %s as failed to create its directory %s" ],
-    "sqlState" : ""
+    "message" : [ "Unable to create database %s as failed to create its directory %s" ]
   },
   "UNABLE_DROP_DATABASE_AS_FAILED_DELETE_DIRECTORY" : {
-    "message" : [ "Unable to drop database %s as failed to delete its directory %s" ],
-    "sqlState" : ""
+    "message" : [ "Unable to drop database %s as failed to delete its directory %s" ]
   },
   "UNABLE_CREATE_TABLE_AS_FAILED_CREATE_DIRECTORY" : {
-    "message" : [ "Unable to create table %s as failed to create its directory %s" ],
-    "sqlState" : ""
+    "message" : [ "Unable to create table %s as failed to create its directory %s" ]
   },
   "UNABLE_DELETE_PARTITION" : {
-    "message" : [ "Unable to delete partition path %s" ],
-    "sqlState" : ""
+    "message" : [ "Unable to delete partition path %s" ]
   },
   "UNABLE_DROP_TABLE_AS_FAILED_DELETE_DIRECTORY" : {
-    "message" : [ "Unable to drop table %s as failed to delete its directory %s" ],
-    "sqlState" : ""
+    "message" : [ "Unable to drop table %s as failed to delete its directory %s" ]
   },
   "UNABLE_RENAME_TABLE_AS_FAILED_RENAME_DIRECTORY" : {
-    "message" : [ "Unable to rename table %s to %s as failed to rename its directory %s" ],
-    "sqlState" : ""
+    "message" : [ "Unable to rename table %s to %s as failed to rename its directory %s" ]
   },
   "UNABLE_CREATE_PARTITION" : {
-    "message" : [ "Unable to create partition path %s" ],
-    "sqlState" : ""
+    "message" : [ "Unable to create partition path %s" ]
   },
   "UNABLE_RENAME_PARTITION" : {
-    "message" : [ "Unable to rename partition path %s" ],
-    "sqlState" : ""
+    "message" : [ "Unable to rename partition path %s" ]
   },
   "METHOD_NOT_IMPLEMENTED" : {
     "message" : [ "%s is not implemented" ],
-    "sqlState" : ""
+    "sqlState" : "HYC00"
   },
   "TABLE_STATS_MUST_SPECIFIED" : {
     "message" : [ "table stats must be specified." ],
-    "sqlState" : ""
+    "sqlState" : "42000"
   },
   "UNARY_MINUS_CAUSE_OVERFLOW" : {
     "message" : [ "- %s caused overflow." ],
-    "sqlState" : ""
+    "sqlState" : "22015"
   },
   "BINARY_ARITHMETIC_CAUSE_OVERFLOW" : {
     "message" : [ "%s %s %s caused overflow." ],
-    "sqlState" : ""
+    "sqlState" : "22015"
   },
   "FAILED_SPLIT_SUB_EXPRESSION_MSG" : {
     "message" : [ "Failed to split subexpression code into small functions because the parameter length of at least one split function went over the JVM limit: %s" ],
-    "sqlState" : ""
   },
   "FAILED_COMPILE_MSG" : {
     "message" : [ "failed to compile: %s" ],
-    "sqlState" : ""
+    "sqlState" : "42000"
   },
   "UNSUPPORTED_TABLE_CHANGE" : {
     "message" : [ "Unsupported table change: %s" ],
-    "sqlState" : ""
+    "sqlState" : "42000"
   },
   "NOT_A_DATA_SOURCE_RDD_PARTITION" : {
     "message" : [ "[BUG] Not a DataSourceRDDPartition: %s" ],
-    "sqlState" : ""
   },
   "DATA_PATH_NOT_SPECIFIED" : {
     "message" : [ "'path' is not specified" ],
-    "sqlState" : ""
-  },
-  "" : {
-    "message" : [ "" ],
-    "sqlState" : ""
-  },
-  "" : {
-    "message" : [ "" ],
-    "sqlState" : ""
-  },
-  "" : {
-    "message" : [ "" ],
-    "sqlState" : ""
   }
 }
