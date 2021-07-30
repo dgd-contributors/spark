@@ -932,9 +932,9 @@ object SparkSession extends Logging {
         }
 
         // Initialize extensions if the user has defined a configurator class.
-        val extensionConfOption = sparkContext.conf.get(StaticSQLConf.SPARK_SESSION_EXTENSIONS)
-        if (extensionConfOption.isDefined) {
-          val extensionConfClassName = extensionConfOption.get
+        val extensionConfOption =
+          sparkContext.conf.get(StaticSQLConf.SPARK_SESSION_EXTENSIONS).getOrElse(Seq.empty)
+        extensionConfOption.foreach { extensionConfClassName =>
           try {
             val extensionConfClass = Utils.classForName(extensionConfClassName)
             val extensionConf = extensionConfClass.newInstance()

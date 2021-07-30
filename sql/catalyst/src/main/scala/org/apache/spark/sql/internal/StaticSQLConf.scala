@@ -102,6 +102,7 @@ object StaticSQLConf {
     .doc("Name of the class used to configure Spark Session extensions. The class should " +
       "implement Function1[SparkSessionExtension, Unit], and must have a no-args constructor.")
     .stringConf
+    .toSequence
     .createOptional
 
   val QUERY_EXECUTION_LISTENERS = buildStaticConf("spark.sql.queryExecutionListeners")
