@@ -165,5 +165,84 @@
   "WRITING_JOB_ABORTED" : {
     "message" : [ "Writing job aborted" ],
     "sqlState" : "40000"
+  },
+  "UNSCALED_VALUE_TOO_LARGE" : {
+    "message" : [ "Unscaled value too large for precision" ],
+    "sqlState" : "22003"
+  },
+  "EXCEED_MAX_DECIMAL_PRECISION" : {
+    "message" : [ "Decimal precision %s exceeds max precision %s" ],
+    "sqlState" : "22003"
+  },
+  "OUT_OF_DECIMAL_TYPE_RANGE" : {
+    "message" : [ "out of decimal type range: %s" ],
+    "sqlState" : "22003"
+  },
+  "UNSUPPORTED_ARRAY_TYPE" : {
+    "message" : [ "Do not support array of type %s." ],
+    "sqlState" : "0D000"
+  },
+  "UNSUPPORTED_JAVA_TYPE" : {
+    "message" : [ "Do not support type %s." ],
+    "sqlState" : "0D000"
+  },
+  "FAILED_PARSE_STRUCT_TYPE" : {
+    "message" : [ "Failed parsing %s: %s" ],
+    "sqlState" : "42000"
+  },
+  "FAILED_MERGING_FIELDS" : {
+    "message" : [ "Failed to merge fields '%s' and '%s'. %s" ],
+    "sqlState" : "42000"
+  },
+  "CANNOT_MERGE_DECIMAL_TYPES_WITH_INCOMPATIBLE_PRECISION_AND_SCALE" : {
+    "message" : [ "Failed to merge decimal types with incompatible precision %s and %s & scale %s and %s" ],
+    "sqlState" : "42000"
+  },
+  "CANNOT_MERGE_DECIMAL_TYPES_WITH_INCOMPATIBLE_PRECISION" : {
+    "message" : [ "Failed to merge decimal types with incompatible precision %s and %s" ],
+    "sqlState" : "42000"
+  },
+  "CANNOT_MERGE_DECIMAL_TYPES_WITH_INCOMPATIBLE_SCALE" : {
+    "message" : [ "Failed to merge decimal types with incompatible scala %s and %s" ],
+    "sqlState" : "42000"
+  },
+  "CANNOT_MERGE_INCOMPATIBLE" : {
+    "message" : [ "Failed to merge incompatible data types %s and %s" ],
+    "sqlState" : "42000"
+  },
+  "EXCEED_MAP_SIZE_LIMIT" : {
+    "message" : [ "Unsuccessful attempt to build maps with %s elements due to exceeding the map size limit %s." ],
+    "sqlState" : "2200Q"
+  },
+  "DUPLICATE_MAP_KEY_FOUND" : {
+    "message" : [ "Duplicate map key %s was found, please check the input data. If you want to remove the duplicated keys, you can set %s to %s so that the key inserted at last takes precedence." ],
+    "sqlState" : "42000"
+  },
+  "MAP_DATA_KEY_ARRAY_LENGTH_DIFFERS_FROM_VALUE_ARRAY_LENGTH" : {
+    "message" : [ "The key array and value array of MapData must have the same length." ],
+    "sqlState" : "2202E"
+  },
+  "FIELD_DIFFERS_FROM_DERIVED_LOCAL_DATE" : {
+    "message" : [ "Conflict found: Field %s %s differs from %s %s derived from %s" ]
+  },
+  "FAIL_TO_PARSE_DATETIME_IN_NEW_PARSER" : {
+    "message" : [ "Fail to parse '%s' in the new parser. You can set %s to LEGACY to restore the behavior before Spark 3.0, or set to CORRECTED and treat it as an invalid datetime string." ],
+    "sqlState" : "42000"
+  },
+  "FAIL_TO_FORMAT_DATETIME_IN_NEW_FORMATTER" : {
+    "message" : [ "Fail to format it to '%s' in the new formatter. You can set %s to LEGACY to restore the behavior before Spark 3.0, or set to CORRECTED and treat it as an invalid datetime string." ],
+    "sqlState" : "42000"
+  },
+  "FAIL_TO_RECOGNIZE_PATTERN_AFTER_UPGRADE" : {
+    "message" : [ "Fail to recognize '%s' pattern in the DateTimeFormatter. 1) You can set %s to LEGACY to restore the behavior before Spark 3.0. 2) You can form a valid datetime pattern with the guide from https://spark.apache.org/docs/latest/sql-ref-datetime-pattern.html" ],
+    "sqlState" : "42000"
+  },
+  "FAIL_TO_RECOGNIZE_PATTERN" : {
+    "message" : [ "Fail to recognize '%s' pattern in the DateTimeFormatter. You can form a valid datetime pattern with the guide from https://spark.apache.org/docs/latest/sql-ref-datetime-pattern.html" ],
+    "sqlState" : "22007"
+  },
+  "CANNOT_CAST_UTF8_STRING_TO_DATA_TYPE" : {
+    "message" : [ "Cannot cast %s to %s." ],
+    "sqlState" : "22018"
   }
 }

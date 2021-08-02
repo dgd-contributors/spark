@@ -72,9 +72,25 @@ private[spark] case class ExecutorDeadException(message: String)
 /**
  * Exception thrown when Spark returns different result after upgrading to a new version.
  */
-private[spark] class SparkUpgradeException(version: String, message: String, cause: Throwable)
+private[spark] class SparkUpgradeException(
+    version: String,
+    message: String,
+    cause: Throwable,
+    val errorClass: Option[String] = None,
+    val messageParameters: Array[String] = Array.empty)
   extends RuntimeException("You may get a different result due to the upgrading of Spark" +
-    s" $version: $message", cause)
+    s" $version: $message", cause) with SparkThrowable {
+
+  def this(
+    errorClass: String,
+    messageParameters: Array[String],
+    version: String,
+    cause: Throwable) =
+    this(version, SparkThrowableHelper.getMessage(errorClass, messageParameters), cause)
+
+  override def getErrorClass: String = errorClass.orNull
+  override def getSqlState: String = SparkThrowableHelper.getSqlState(errorClass.orNull)
+}
 
 /**
  * Arithmetic exception thrown from Spark with an error class.
