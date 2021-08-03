@@ -956,7 +956,7 @@ object QueryExecutionErrors {
   }
 
   def registeringStreamingQueryListenerError(e: Exception): Throwable = {
-    new SparkException("Exception when registering StreamingQueryListener", e)
+    new SparkException("FAIL_TO_REGISTER_STREAMING_QUERY_LISTENER", Array.empty, e)
   }
 
   def concurrentQueryInstanceError(): Throwable = {
@@ -964,106 +964,98 @@ object QueryExecutionErrors {
   }
 
   def cannotParseJsonArraysAsStructsError(): Throwable = {
-    new RuntimeException("Parsing JSON arrays as structs is forbidden.")
+    new SparkRuntimeException("CANNOT_PARSE_JSON_ARRAYS_AS_STRUCTS", Array.empty)
   }
 
   def cannotParseStringAsDataTypeError(parser: JsonParser, token: JsonToken, dataType: DataType)
   : Throwable = {
-    new RuntimeException(
-      s"Cannot parse field name ${parser.getCurrentName}, " +
-        s"field value ${parser.getText}, " +
-        s"[$token] as target spark data type [$dataType].")
+    new SparkRuntimeException("CANNOT_PARSE_STRING_AS_DATA_TYPE",
+      Array(parser.getCurrentName, parser.getText, token.toString, dataType.toString))
   }
 
   def failToParseEmptyStringForDataTypeError(dataType: DataType): Throwable = {
-    new RuntimeException(
-      s"Failed to parse an empty string for data type ${dataType.catalogString}")
+    new SparkRuntimeException("FAIL_TO_PARSE_EMPTY_STRING_FOR_DATA_TYPE",
+      Array(dataType.catalogString))
   }
 
   def failToParseValueForDataTypeError(parser: JsonParser, token: JsonToken, dataType: DataType)
   : Throwable = {
-    new RuntimeException(
-      s"Failed to parse field name ${parser.getCurrentName}, " +
-        s"field value ${parser.getText}, " +
-        s"[$token] to target spark data type [$dataType].")
+    new SparkRuntimeException("CANNOT_PARSE_STRING_AS_DATA_TYPE",
+      Array(parser.getCurrentName, parser.getText, token.toString, dataType.toString))
   }
 
   def rootConverterReturnNullError(): Throwable = {
-    new RuntimeException("Root converter returned null")
+    new SparkRuntimeException("ROOT_CONVERTER_RETURN_NULL", Array.empty)
   }
 
   def cannotHaveCircularReferencesInBeanClassError(clazz: Class[_]): Throwable = {
-    new UnsupportedOperationException(
-      "Cannot have circular references in bean class, but got the circular reference " +
-        s"of class $clazz")
+    new SparkUnsupportedOperationException("CANNOT_HAVE_CIRCULAR_REFERENCES_IN_BEAN_CLASS",
+      Array(clazz.toString))
   }
 
   def cannotHaveCircularReferencesInClassError(t: String): Throwable = {
-    new UnsupportedOperationException(
-      s"cannot have circular references in class, but got the circular reference of class $t")
+    new SparkUnsupportedOperationException("CANNOT_HAVE_CIRCULAR_REFERENCES_IN_CLASS", Array(t))
   }
 
   def cannotUseInvalidJavaIdentifierAsFieldNameError(
       fieldName: String, walkedTypePath: WalkedTypePath): Throwable = {
-    new UnsupportedOperationException(s"`$fieldName` is not a valid identifier of " +
-      s"Java and cannot be used as field name\n$walkedTypePath")
+    new SparkUnsupportedOperationException("CANNOT_USE_INVALID_JAVA_IDENTIFIER_AS_FIELD_NAME",
+      Array(fieldName, walkedTypePath.toString))
   }
 
   def cannotFindEncoderForTypeError(
       tpe: String, walkedTypePath: WalkedTypePath): Throwable = {
-    new UnsupportedOperationException(s"No Encoder found for $tpe\n$walkedTypePath")
+    new SparkUnsupportedOperationException("CANNOT_FIND_ENCODER_FOR_TYPE",
+      Array(tpe, walkedTypePath.toString))
   }
 
   def attributesForTypeUnsupportedError(schema: Schema): Throwable = {
-    new UnsupportedOperationException(s"Attributes for type $schema is not supported")
+    new SparkUnsupportedOperationException("ATTRIBUTES_FOR_TYPE_UNSUPPORTED",
+      Array(schema.toString))
   }
 
   def schemaForTypeUnsupportedError(tpe: String): Throwable = {
-    new UnsupportedOperationException(s"Schema for type $tpe is not supported")
+    new SparkUnsupportedOperationException("SCHEMA_FOR_TYPE_UNSUPPORTED", Array(tpe))
   }
 
   def cannotFindConstructorForTypeError(tpe: String): Throwable = {
-    new UnsupportedOperationException(
-      s"""
-         |Unable to find constructor for $tpe.
-         |This could happen if $tpe is an interface, or a trait without companion object
-         |constructor.
-       """.stripMargin.replaceAll("\n", " "))
+    new SparkUnsupportedOperationException("CANNOT_FIND_CONSTRUCTOR_FOR_TYPE", Array(tpe, tpe))
   }
 
   def paramExceedOneCharError(paramName: String): Throwable = {
-    new RuntimeException(s"$paramName cannot be more than one character")
+    new SparkRuntimeException("PARAM_EXCEED_ONE_CHAR", Array(paramName))
   }
 
   def paramIsNotIntegerError(paramName: String, value: String): Throwable = {
-    new RuntimeException(s"$paramName should be an integer. Found $value")
+    new SparkRuntimeException("PARAM_IS_NOT_INTEGER", Array(paramName, value))
   }
 
   def paramIsNotBooleanValueError(paramName: String): Throwable = {
-    new Exception(s"$paramName flag can be true or false")
+    new SparkException("PARAM_IS_NOT_BOOLEAN_VALUE", Array(paramName), null)
   }
 
   def foundNullValueForNotNullableFieldError(name: String): Throwable = {
-    new RuntimeException(s"null value found but field $name is not nullable.")
+    new SparkRuntimeException("FOUND_NULL_VALUE_FOR_NOT_NULLABLE_FIELD", Array(name))
   }
 
   def malformedCSVRecordError(): Throwable = {
-    new RuntimeException("Malformed CSV record")
+    new SparkRuntimeException("MALFORMED_CSV_RECORD", Array.empty)
   }
 
   def elementsOfTupleExceedLimitError(): Throwable = {
-    new UnsupportedOperationException("Due to Scala's limited support of tuple, " +
-      "tuple with more than 22 elements are not supported.")
+    new SparkUnsupportedOperationException("ELEMENTS_OF_TUPLE_EXCEED_LIMIT", Array.empty)
   }
 
   def expressionDecodingError(e: Exception, expressions: Seq[Expression]): Throwable = {
-    new RuntimeException(s"Error while decoding: $e\n" +
-      s"${expressions.map(_.simpleString(SQLConf.get.maxToStringFields)).mkString("\n")}", e)
+    new SparkRuntimeException("EXPRESSION_DECODING_ERROR",
+      Array(e.toString,
+        expressions.map(_.simpleString(SQLConf.get.maxToStringFields)).mkString("\n")), e)
   }
 
   def expressionEncodingError(e: Exception, expressions: Seq[Expression]): Throwable = {
-    new RuntimeException(s"Error while encoding: $e\n" +
-      s"${expressions.map(_.simpleString(SQLConf.get.maxToStringFields)).mkString("\n")}", e)
+    new SparkRuntimeException("EXPRESSION_ENCODING_ERROR",
+      Array(e.toString,
+        expressions.map(_.simpleString(SQLConf.get.maxToStringFields)).mkString("\n")), e)
   }
 
   def classHasUnexpectedSerializerError(clsName: String, objSerializer: Expression): Throwable = {

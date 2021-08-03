@@ -244,5 +244,79 @@
   "CANNOT_CAST_UTF8_STRING_TO_DATA_TYPE" : {
     "message" : [ "Cannot cast %s to %s." ],
     "sqlState" : "22018"
+  },
+  "FAIL_TO_REGISTER_STREAMING_QUERY_LISTENER" : {
+    "message" : [ "Exception when registering StreamingQueryListener" ]
+  },
+  "CANNOT_PARSE_JSON_ARRAYS_AS_STRUCTS" : {
+    "message" : [ "Parsing JSON arrays as structs is forbidden." ],
+    "sqlState" : "42000"
+  },
+  "CANNOT_PARSE_STRING_AS_DATA_TYPE" : {
+    "message" : [ "Cannot parse field name %s, field value %s, [%s] as target spark data type [%s]." ],
+    "sqlState" : "0700B"
+  },
+  "FAIL_TO_PARSE_EMPTY_STRING_FOR_DATA_TYPE" : {
+    "message" : [ "Failed to parse an empty string for data type %s" ],
+    "sqlState" : "42000"
+  },
+  "ROOT_CONVERTER_RETURN_NULL" : {
+    "message" : [ "Root converter returned null" ],
+    "sqlState" : "22004"
+  },
+  "CANNOT_HAVE_CIRCULAR_REFERENCES_IN_BEAN_CLASS" : {
+    "message" : [ "Cannot have circular references in bean class, but got the circular reference of class %s" ]
+  },
+  "CANNOT_HAVE_CIRCULAR_REFERENCES_IN_CLASS" : {
+    "message" : [ "cannot have circular references in class, but got the circular reference of class %s" ]
+  },
+  "CANNOT_USE_INVALID_JAVA_IDENTIFIER_AS_FIELD_NAME" : {
+    "message" : [ "`%s` is not a valid identifier of Java and cannot be used as field name\\n%s" ],
+    "sqlState" : "42000"
+  },
+  "CANNOT_FIND_ENCODER_FOR_TYPE" : {
+    "message" : [ "No Encoder found for %s\\n%s" ],
+    "sqlState" : "42000"
+  },
+  "ATTRIBUTES_FOR_TYPE_UNSUPPORTED" : {
+    "message" : [ "Attributes for type %s is not supported" ],
+    "sqlState" : "42000"
+  },
+  "SCHEMA_FOR_TYPE_UNSUPPORTED" : {
+    "message" : [ "Schema for type %s is not supported" ],
+    "sqlState" : "25007"
+  },
+  "CANNOT_FIND_CONSTRUCTOR_FOR_TYPE" : {
+    "message" : [ "Unable to find constructor for %s. This could happen if %s is an interface, or a trait without companion object constructor." ],
+    "sqlState" : "42000"
+  },
+  "PARAM_EXCEED_ONE_CHAR" : {
+    "message" : [ "%s cannot be more than one character" ],
+    "sqlState" : "2200H"
+  },
+  "PARAM_IS_NOT_INTEGER" : {
+    "message" : [ "%s should be an integer. Found %s" ],
+    "sqlState" : "2200G"
+  },
+  "PARAM_IS_NOT_BOOLEAN_VALUE" : {
+    "message" : [ "%s flag can be true or false" ],
+    "sqlState" : "2200G"
+  },
+  "FOUND_NULL_VALUE_FOR_NOT_NULLABLE_FIELD" : {
+    "message" : [ "null value found but field %s is not nullable." ],
+    "sqlState" : "22004"
+  },
+  "MALFORMED_CSV_RECORD" : {
+    "message" : [ "Malformed CSV record" ]
+  },
+  "ELEMENTS_OF_TUPLE_EXCEED_LIMIT" : {
+    "message" : [ "Due to Scala's limited support of tuple, tuple with more than 22 elements are not supported." ],
+    "sqlState" : "42000"
+  },
+  "EXPRESSION_DECODING_ERROR" : {
+    "message" : [ "Error while decoding: %s\\n%s" ]
+  },
+  "EXPRESSION_ENCODING_ERROR" : {
+    "message" : [ "Error while encoding: %s\\n%s" ]
   }
 }
