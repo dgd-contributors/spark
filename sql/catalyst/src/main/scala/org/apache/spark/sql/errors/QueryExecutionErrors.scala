@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.permission.FsPermission
 import org.codehaus.commons.compiler.CompileException
 import org.codehaus.janino.InternalCompilerException
 
-import org.apache.spark.{Partition, SparkArithmeticException, SparkException, SparkUpgradeException}
+import org.apache.spark.{Partition, SparkArithmeticException, SparkException, SparkIllegalStateException, SparkIndexOutOfBoundsException, SparkIOException, SparkNoSuchElementException, SparkRuntimeException, SparkUnsupportedOperationException, SparkUpgradeException}
 import org.apache.spark.executor.CommitDeniedException
 import org.apache.spark.launcher.SparkLauncher
 import org.apache.spark.memory.SparkOutOfMemoryError
@@ -1166,120 +1166,145 @@ object QueryExecutionErrors {
 
   def cannotRewriteDomainJoinWithConditionsError(
       conditions: Seq[Expression], d: DomainJoin): Throwable = {
-    new IllegalStateException(
-      s"Unable to rewrite domain join with conditions: $conditions\n$d")
+    new SparkIllegalStateException(
+      errorClass = "CANNOT_REWRITE_DOMAIN_JOIN_WITH_CONDITIONS_ERROR",
+      messageParameters = Array(conditions.toString, d.toString))
   }
 
   def decorrelateInnerQueryThroughPlanUnsupportedError(plan: LogicalPlan): Throwable = {
-    new UnsupportedOperationException(
-      s"Decorrelate inner query through ${plan.nodeName} is not supported.")
+    new SparkUnsupportedOperationException(
+      errorClass = "DECORRELATE_INNER_QUERY_THROUGH_PLAN_UNSUPPORTED_ERROR",
+      messageParameters = Array(plan.nodeName))
   }
 
   def methodCalledInAnalyzerNotAllowedError(): Throwable = {
-    new RuntimeException("This method should not be called in the analyzer")
+    new SparkRuntimeException(
+      errorClass = "METHOD_CALLED_IN_ANALYZER_NOT_ALLOWED_ERROR",
+      messageParameters = Array.empty)
   }
 
   def cannotSafelyMergeSerdePropertiesError(
       props1: Map[String, String],
       props2: Map[String, String],
       conflictKeys: Set[String]): Throwable = {
-    new UnsupportedOperationException(
-      s"""
-         |Cannot safely merge SERDEPROPERTIES:
-         |${props1.map { case (k, v) => s"$k=$v" }.mkString("{", ",", "}")}
-         |${props2.map { case (k, v) => s"$k=$v" }.mkString("{", ",", "}")}
-         |The conflict keys: ${conflictKeys.mkString(", ")}
-         |""".stripMargin)
+    new SparkUnsupportedOperationException(
+      errorClass = "CANNOT_SAFELY_MERGE_SERDE_PROPERTIES_ERROR",
+      messageParameters = Array(
+        props1.map { case (k, v) => s"$k=$v" }.mkString("{", ",", "}"),
+        props2.map { case (k, v) => s"$k=$v" }.mkString("{", ",", "}"),
+        conflictKeys.mkString(", "))
+    )
   }
 
   def pairUnsupportedAtFunctionError(
       r1: ValueInterval, r2: ValueInterval, function: String): Throwable = {
-    new UnsupportedOperationException(s"Not supported pair: $r1, $r2 at $function()")
+    new SparkUnsupportedOperationException(
+      errorClass = "PAIR_UNSUPPORTED_AT_FUNCTION_ERROR",
+      messageParameters = Array(r1.toString, r2.toString, function))
   }
 
   def onceStrategyIdempotenceIsBrokenForBatchError[TreeType <: TreeNode[_]](
       batchName: String, plan: TreeType, reOptimized: TreeType): Throwable = {
-    new RuntimeException(
-      s"""
-         |Once strategy's idempotence is broken for batch $batchName
-         |${sideBySide(plan.treeString, reOptimized.treeString).mkString("\n")}
-       """.stripMargin)
+    new SparkRuntimeException(
+      errorClass = "ONCE_STRATEGY_IDEMPOTENCE_IS_BROKEN_FOR_BATCH_ERROR",
+      messageParameters = Array(
+        batchName,
+        sideBySide(plan.treeString, reOptimized.treeString).mkString("\n")))
   }
 
   def structuralIntegrityOfInputPlanIsBrokenInClassError(className: String): Throwable = {
-    new RuntimeException("The structural integrity of the input plan is broken in " +
-      s"$className.")
+    new SparkRuntimeException(
+      errorClass = "STRUCTURAL_INTEGRITY_OF_INPUT_PLAN_IS_BROKEN_IN_CLASS_ERROR",
+      messageParameters = Array(className))
   }
 
   def structuralIntegrityIsBrokenAfterApplyingRuleError(
       ruleName: String, batchName: String): Throwable = {
-    new RuntimeException(s"After applying rule $ruleName in batch $batchName, " +
-      "the structural integrity of the plan is broken.")
+    new SparkRuntimeException(
+      errorClass = "STRUCTURAL_INTEGRITY_IS_BROKEN_AFTER_APPLYING_RULE_ERROR",
+      messageParameters = Array(ruleName, batchName))
   }
 
   def ruleIdNotFoundForRuleError(ruleName: String): Throwable = {
-    new NoSuchElementException(s"Rule id not found for $ruleName")
+    new SparkNoSuchElementException(
+      errorClass = "RULE_ID_NOT_FOUND_FOR_RULE_ERROR",
+      messageParameters = Array(ruleName))
   }
 
   def cannotCreateArrayWithElementsExceedLimitError(
       numElements: Long, additionalErrorMessage: String): Throwable = {
-    new RuntimeException(
-      s"""
-         |Cannot create array with $numElements
-         |elements of data due to exceeding the limit
-         |${ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH} elements for ArrayData.
-         |$additionalErrorMessage
-       """.stripMargin.replaceAll("\n", " "))
+    new SparkRuntimeException(
+      errorClass = "CANNOT_CREATE_ARRAY_WITH_ELEMENTS_EXCEED_LIMIT_ERROR",
+      messageParameters = Array(
+        numElements.toString,
+        ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH.toString,
+        additionalErrorMessage))
   }
 
   def indexOutOfBoundsOfArrayDataError(idx: Int): Throwable = {
-    new IndexOutOfBoundsException(
-      s"Index $idx must be between 0 and the length of the ArrayData.")
+    new SparkIndexOutOfBoundsException(
+      errorClass = "INDEX_OUT_OF_BOUNDS_OF_ARRAY_DATA_ERROR",
+      messageParameters = Array(idx.toString))
   }
 
   def malformedRecordsDetectedInRecordParsingError(e: BadRecordException): Throwable = {
-    new SparkException("Malformed records are detected in record parsing. " +
-      s"Parse Mode: ${FailFastMode.name}. To process malformed records as null " +
-      "result, try setting the option 'mode' as 'PERMISSIVE'.", e)
+    new SparkException(
+      errorClass = "MALFORMED_RECORDS_DETECTED_IN_RECORD_PARSING_ERROR",
+      messageParameters = Array(FailFastMode.name), e)
   }
 
   def remoteOperationsUnsupportedError(): Throwable = {
-    new RuntimeException("Remote operations not supported")
+    new SparkRuntimeException(
+      errorClass = "REMOTE_OPERATIONS_UNSUPPORTED_ERROR",
+      messageParameters = Array.empty)
   }
 
   def invalidKerberosConfigForHiveServer2Error(): Throwable = {
-    new IOException(
-      "HiveServer2 Kerberos principal or keytab is not correctly configured")
+    new SparkIOException(
+      errorClass = "INVALID_KERBEROS_CONFIG_FOR_HIVE_SERVER2_ERROR",
+      messageParameters = Array.empty)
   }
 
   def parentSparkUIToAttachTabNotFoundError(): Throwable = {
-    new SparkException("Parent SparkUI to attach this tab to not found!")
+    new SparkException(
+      errorClass = "PARENT_SPARKUI_TO_ATTACH_TAB_NOT_FOUND_ERROR",
+      messageParameters = Array.empty, null)
   }
 
   def inferSchemaUnsupportedForHiveError(): Throwable = {
-    new UnsupportedOperationException("inferSchema is not supported for hive data source.")
+    new SparkUnsupportedOperationException(
+      errorClass = "INFER_SCHEMA_UNSUPPORTED_FOR_HIVE_ERROR",
+      messageParameters = Array.empty)
   }
 
   def requestedPartitionsMismatchTablePartitionsError(
       table: CatalogTable, partition: Map[String, Option[String]]): Throwable = {
     new SparkException(
-      s"""
-         |Requested partitioning does not match the ${table.identifier.table} table:
-         |Requested partitions: ${partition.keys.mkString(",")}
-         |Table partitions: ${table.partitionColumnNames.mkString(",")}
-       """.stripMargin)
+      errorClass = "REQUESTED_PARTITIONS_MISMATCH_TABLE_PARTITIONS_ERROR",
+      messageParameters = Array(
+        table.identifier.table.toString,
+        partition.keys.mkString(","),
+        table.partitionColumnNames.mkString(",")),
+      null)
   }
 
   def dynamicPartitionKeyNotAmongWrittenPartitionPathsError(key: String): Throwable = {
-    new SparkException(s"Dynamic partition key $key is not among written partition paths.")
+    new SparkException(
+      errorClass = "DYNAMIC_PARTITION_KEY_NOT_AMONG_WRITTEN_PARTITION_PATHS_ERROR",
+      messageParameters = Array(key), null)
   }
 
   def cannotRemovePartitionDirError(partitionPath: Path): Throwable = {
-    new RuntimeException(s"Cannot remove partition directory '$partitionPath'")
+    new SparkRuntimeException(
+      errorClass = "CANNOT_REMOVE_PARTITION_DIR_ERROR",
+      messageParameters = Array(partitionPath.toString)
+    )
   }
 
   def cannotCreateStagingDirError(message: String, e: IOException): Throwable = {
-    new RuntimeException(s"Cannot create staging directory: $message", e)
+    new SparkRuntimeException(
+      errorClass = "CANNOT_CREATE_STAGING_DIR_ERROR",
+      messageParameters = Array(message))
   }
 
   def serDeInterfaceNotFoundError(e: NoClassDefFoundError): Throwable = {
