@@ -3,6 +3,22 @@
     "message" : [ "Field name %s is ambiguous and has %s matching fields in the struct." ],
     "sqlState" : "42000"
   },
+  "CANNOT_GENERATE_CODE_FOR_UNSUPPORTED_TYPE" : {
+    "message" : [ "Cannot generate code for unsupported type: %s" ],
+    "sqlState" : "42000"
+  },
+  "CANNOT_INTERPOLATE_CLASS_INTO_CODE_BLOCK" : {
+    "message" : [ "Can not interpolate %s into code block." ],
+    "sqlState" : "42000"
+  },
+  "CLASS_UNSUPPORTED_BY_MAP_OBJECTS" : {
+    "message" : [ "Class `%s` is not supported by `MapObjects` as resulting collection." ],
+    "sqlState" : "42000"
+  },
+  "CONSTRUCTOR_NOT_FOUND" : {
+    "message" : [ "Couldn't find a valid constructor on %s" ],
+    "sqlState" : "42000"
+  },
   "DIVIDE_BY_ZERO" : {
     "message" : [ "divide by zero" ],
     "sqlState" : "22012"
@@ -10,6 +26,14 @@
   "DUPLICATE_KEY" : {
     "message" : [ "Found duplicate keys '%s'" ],
     "sqlState" : "23000"
+  },
+  "FAIL_TO_CONVERT_VALUE_TO_JSON" : {
+    "message" : [ "Failed to convert value %s (class of %s) with the type of %s to JSON." ],
+    "sqlState" : "42000"
+  },
+  "FIELD_CANNOT_BE_NULL" : {
+    "message" : [ "The %sth field '%s' of input row cannot be null." ],
+    "sqlState" : "42000"
   },
   "GROUPING_COLUMN_MISMATCH" : {
     "message" : [ "Column of grouping (%s) can't be found in grouping columns %s" ],
@@ -29,8 +53,16 @@
     "message" : [ "Invalid pivot column '%s'. Pivot columns must be comparable." ],
     "sqlState" : "42000"
   },
+  "INPUT_EXTERNAL_ROW_CANNOT_BE_NULL" : {
+    "message" : [ "The input external row cannot be null." ],
+    "sqlState" : "42000"
+  },
   "INVALID_FIELD_NAME" : {
     "message" : [ "Field name %s is invalid: %s is not a struct." ],
+    "sqlState" : "42000"
+  },
+  "METHOD_NOT_DECLARED" : {
+    "message" : [ "A method named \"%s\" is not declared in any enclosing class nor any supertype." ],
     "sqlState" : "42000"
   },
   "MISSING_COLUMN" : {
@@ -49,8 +81,28 @@
     "message" : [ "PARTITION clause cannot contain a non-partition column name: %s" ],
     "sqlState" : "42000"
   },
+  "NOT_EXPECTED_UNRESOLVED_ENCODER" : {
+    "message" : [ "Unresolved encoder expected, but %s was found." ],
+    "sqlState" : "42000"
+  },
+  "NOT_OVERRIDE_EXPECTED_METHODS" : {
+    "message" : [ "%s must override either %s or %s" ],
+    "sqlState" : "42000"
+  },
+  "NULL_AS_MAP_KEY_NOT_ALLOWED" : {
+    "message" : [ "Cannot use null as map key!" ],
+    "sqlState" : "42000"
+  },
   "PIVOT_VALUE_DATA_TYPE_MISMATCH" : {
     "message" : [ "Invalid pivot value '%s': value data type %s does not match pivot column data type %s" ],
+    "sqlState" : "42000"
+  },
+  "PRIMARY_CONSTRUCTOR_NOT_FOUND" : {
+    "message" : [ "Couldn't find a primary constructor on %s" ],
+    "sqlState" : "42000"
+  },
+  "RESOLVE_CANNOT_HANDLE_NESTED_SCHEMA" : {
+    "message" : [ "Can not handle nested schema yet...  plan %s" ],
     "sqlState" : "42000"
   },
   "SECOND_FUNCTION_ARGUMENT_NOT_INTEGER" : {
@@ -59,6 +111,30 @@
   },
   "UNABLE_TO_ACQUIRE_MEMORY" : {
     "message" : [ "Unable to acquire %s bytes of memory, got %s" ]
+  },
+  "UNEXPECTED_OPERATOR_IN_CORRELATED_SUBQUERY" : {
+    "message" : [ "Unexpected operator %s in correlated subquery%s" ],
+    "sqlState" : "42000"
+  },
+  "UNREACHABLE" : {
+    "message" : [ "This line should be unreachable%s" ],
+    "sqlState" : "42000"
+  },
+  "UNSUPPORTED_ENCODER" : {
+    "message" : [ "Only expression encoders are supported for now." ],
+    "sqlState" : "42000"
+  },
+  "UNSUPPORTED_NATURAL_JOIN_TYPE" : {
+    "message" : [ "Unsupported natural join type %s" ],
+    "sqlState" : "42000"
+  },
+  "UNSUPPORTED_OPERATION_NOT_RESOLVED" : {
+    "message" : [ "Not resolved" ],
+    "sqlState" : "42000"
+  },
+  "UNSUPPORTED_ROUNDING" : {
+    "message" : [ "Not supported rounding mode: %s" ],
+    "sqlState" : "42000"
   },
   "WRITING_JOB_ABORTED" : {
     "message" : [ "Writing job aborted" ],

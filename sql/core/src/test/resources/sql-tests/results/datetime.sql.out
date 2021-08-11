@@ -1279,7 +1279,7 @@ select to_timestamp_ntz('2019-10-06 A', 'yyyy-MM-dd GGGGG')
 -- !query schema
 struct<>
 -- !query output
-java.lang.RuntimeException
+org.apache.spark.SparkRuntimeException
 Fail to recognize 'yyyy-MM-dd GGGGG' pattern in the DateTimeFormatter. You can form a valid datetime pattern with the guide from https://spark.apache.org/docs/latest/sql-ref-datetime-pattern.html
 
 
@@ -1288,7 +1288,7 @@ select to_timestamp_ntz('22 05 2020 Friday', 'dd MM yyyy EEEEEE')
 -- !query schema
 struct<>
 -- !query output
-java.lang.RuntimeException
+org.apache.spark.SparkRuntimeException
 Fail to recognize 'dd MM yyyy EEEEEE' pattern in the DateTimeFormatter. You can form a valid datetime pattern with the guide from https://spark.apache.org/docs/latest/sql-ref-datetime-pattern.html
 
 
@@ -1297,7 +1297,7 @@ select to_timestamp_ntz('22 05 2020 Friday', 'dd MM yyyy EEEEE')
 -- !query schema
 struct<>
 -- !query output
-java.lang.RuntimeException
+org.apache.spark.SparkRuntimeException
 Fail to recognize 'dd MM yyyy EEEEE' pattern in the DateTimeFormatter. You can form a valid datetime pattern with the guide from https://spark.apache.org/docs/latest/sql-ref-datetime-pattern.html
 
 
