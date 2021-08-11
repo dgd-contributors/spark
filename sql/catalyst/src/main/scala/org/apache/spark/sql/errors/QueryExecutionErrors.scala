@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.permission.FsPermission
 import org.codehaus.commons.compiler.CompileException
 import org.codehaus.janino.InternalCompilerException
 
-import org.apache.spark.{Partition, SparkArithmeticException, SparkException, SparkUpgradeException}
+import org.apache.spark.{Partition, SparkArithmeticException, SparkArrayIndexOutOfBoundsException, SparkException, SparkRuntimeException, SparkUnsupportedOperationException, SparkUpgradeException}
 import org.apache.spark.executor.CommitDeniedException
 import org.apache.spark.launcher.SparkLauncher
 import org.apache.spark.memory.SparkOutOfMemoryError
@@ -1050,118 +1050,141 @@ object QueryExecutionErrors {
   }
 
   def expressionDecodingError(e: Exception, expressions: Seq[Expression]): Throwable = {
-    new RuntimeException(s"Error while decoding: $e\n" +
-      s"${expressions.map(_.simpleString(SQLConf.get.maxToStringFields)).mkString("\n")}", e)
+    new SparkRuntimeException(
+      errorClass = "EXPRESSION_DECODEDING_ERROR",
+      messageParameters = Array(
+        e.toString,
+        expressions.map(_.simpleString(SQLConf.get.maxToStringFields)).mkString("\n")), e)
   }
 
   def expressionEncodingError(e: Exception, expressions: Seq[Expression]): Throwable = {
-    new RuntimeException(s"Error while encoding: $e\n" +
-      s"${expressions.map(_.simpleString(SQLConf.get.maxToStringFields)).mkString("\n")}", e)
+    new SparkRuntimeException(
+      errorClass = "EXPRESSION_ENCODING_ERROR",
+      messageParameters = Array(
+        e.toString,
+        expressions.map(_.simpleString(SQLConf.get.maxToStringFields)).mkString("\n")), e)
   }
 
   def classHasUnexpectedSerializerError(clsName: String, objSerializer: Expression): Throwable = {
-    new RuntimeException(s"class $clsName has unexpected serializer: $objSerializer")
+    new SparkRuntimeException(
+      errorClass = "CLASS_HAS_UNEXPECTED_SERIALIZER_ERROR",
+      messageParameters = Array(clsName, objSerializer.toString), null)
   }
 
   def cannotGetOuterPointerForInnerClassError(innerCls: Class[_]): Throwable = {
-    new RuntimeException(s"Failed to get outer pointer for ${innerCls.getName}")
+    new SparkRuntimeException(
+      errorClass = "CANNOT_GET_OUTER_POINTER_FOR_INNERCLASS_ERROR",
+      messageParameters = Array(innerCls.getName), null)
   }
 
   def userDefinedTypeNotAnnotatedAndRegisteredError(udt: UserDefinedType[_]): Throwable = {
-    new SparkException(s"${udt.userClass.getName} is not annotated with " +
-      "SQLUserDefinedType nor registered with UDTRegistration.}")
+    new SparkException(
+      errorClass = "USER_DEFINED_TYPE_NOT_ANNOTATED_AND_REGISTERED_ERROR",
+      messageParameters = Array(udt.userClass.getName), null)
   }
 
   def invalidInputSyntaxForBooleanError(s: UTF8String): UnsupportedOperationException = {
-    new UnsupportedOperationException(s"invalid input syntax for type boolean: $s")
+    new SparkUnsupportedOperationException(
+      errorClass = "INVALID_INPUT_SYNTAX_FOR_BOOLEAN_ERROR",
+      messageParameters = Array(s.toString)
+    )
   }
 
   def unsupportedOperandTypeForSizeFunctionError(dataType: DataType): Throwable = {
-    new UnsupportedOperationException(
-      s"The size function doesn't support the operand type ${dataType.getClass.getCanonicalName}")
+    new SparkUnsupportedOperationException(
+     errorClass = "UNSUPPORTED_OPERAND_TYPE_FOR_SIZE_FUNCTION_ERROR",
+     messageParameters = Array(dataType.getClass.getCanonicalName))
   }
 
   def unexpectedValueForStartInFunctionError(prettyName: String): RuntimeException = {
-    new RuntimeException(
-      s"Unexpected value for start in function $prettyName: SQL array indices start at 1.")
+    new SparkRuntimeException(
+      errorClass = "UNEXPECTED_VALUE_FOR_START_IN_FUNCTION_ERROR",
+      messageParameters = Array(prettyName), null)
   }
 
   def unexpectedValueForLengthInFunctionError(prettyName: String): RuntimeException = {
-    new RuntimeException(s"Unexpected value for length in function $prettyName: " +
-      "length must be greater than or equal to 0.")
+    new SparkRuntimeException(
+      errorClass = "UNEXPECTED_VALUE_FOR_LENGTH_IN_FUNCTION_ERROR",
+      messageParameters = Array(prettyName), null)
   }
 
   def sqlArrayIndexNotStartAtOneError(): ArrayIndexOutOfBoundsException = {
-    new ArrayIndexOutOfBoundsException("SQL array indices start at 1")
+    new SparkArrayIndexOutOfBoundsException(
+      errorClass = "SQL_ARRAY_INDEX_NOT_START_AT_ONE_ERROR",
+      messageParameters = Array.empty
+    )
   }
 
   def concatArraysWithElementsExceedLimitError(numberOfElements: Long): Throwable = {
-    new RuntimeException(
-      s"""
-         |Unsuccessful try to concat arrays with $numberOfElements
-         |elements due to exceeding the array size limit
-         |${ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH}.
-       """.stripMargin.replaceAll("\n", " "))
+    new SparkRuntimeException(
+      errorClass = "CONCAT_ARRAYS_WITH_ELEMENTS_EXCEED_LIMIT_ERROR",
+      messageParameters = Array(
+        numberOfElements.toString,
+        ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH.toString), null)
   }
 
   def flattenArraysWithElementsExceedLimitError(numberOfElements: Long): Throwable = {
-    new RuntimeException(
-      s"""
-         |Unsuccessful try to flatten an array of arrays with $numberOfElements
-         |elements due to exceeding the array size limit
-         |${ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH}.
-       """.stripMargin.replaceAll("\n", " "))
+    new SparkRuntimeException(
+      errorClass = "FLATTEN_ARRAYS_WITH_ELEMENTS_EXCEED_LIMIT_ERROR",
+      messageParameters = Array(
+        numberOfElements.toString,
+        ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH.toString), null)
   }
 
   def createArrayWithElementsExceedLimitError(count: Any): RuntimeException = {
-    new RuntimeException(
-      s"""
-         |Unsuccessful try to create array with $count elements
-         |due to exceeding the array size limit
-         |${ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH}.
-       """.stripMargin.replaceAll("\n", " "))
+    new SparkRuntimeException(
+      errorClass = "CREATE_ARRAY_WITH_ELEMENTS_EXCEED_LIMIT_ERROR",
+      messageParameters = Array(
+        count.toString,
+        ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH.toString), null)
   }
 
   def unionArrayWithElementsExceedLimitError(length: Int): Throwable = {
-    new RuntimeException(
-      s"""
-         |Unsuccessful try to union arrays with $length
-         |elements due to exceeding the array size limit
-         |${ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH}.
-       """.stripMargin.replaceAll("\n", " "))
+    new SparkRuntimeException(
+      errorClass = "UNION_ARRAY_WITH_ELEMENTS_EXCEED_LIMIT_ERROR",
+      messageParameters = Array(
+        length.toString,
+        ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH.toString), null)
   }
 
   def initialTypeNotTargetDataTypeError(dataType: DataType, target: String): Throwable = {
-    new UnsupportedOperationException(s"Initial type ${dataType.catalogString} must be a $target")
+    new SparkUnsupportedOperationException(
+      errorClass = "INITIAL_TYPE_NOT_TARGET_DATATYPE_ERROR",
+      messageParameters = Array(dataType.toString, target))
   }
 
   def initialTypeNotTargetDataTypesError(dataType: DataType): Throwable = {
-    new UnsupportedOperationException(
-      s"Initial type ${dataType.catalogString} must be " +
-        s"an ${ArrayType.simpleString}, a ${StructType.simpleString} or a ${MapType.simpleString}")
+    new SparkUnsupportedOperationException(
+      errorClass = "INITIAL_TYPE_NOT_TARGET_DATATYPES_ERROR",
+      messageParameters = Array(
+        dataType.catalogString,
+        ArrayType.simpleString,
+        StructType.simpleString,
+        MapType.simpleString))
   }
 
   def cannotConvertColumnToJSONError(name: String, dataType: DataType): Throwable = {
-    new UnsupportedOperationException(
-      s"Unable to convert column $name of type ${dataType.catalogString} to JSON.")
+    new SparkUnsupportedOperationException(
+      errorClass = "CANNOT_CONVERT_COLUMN_TO_JSON_ERROR",
+      messageParameters = Array(name, dataType.catalogString))
   }
 
   def malformedRecordsDetectedInSchemaInferenceError(e: Throwable): Throwable = {
-    new SparkException("Malformed records are detected in schema inference. " +
-      s"Parse Mode: ${FailFastMode.name}.", e)
+    new SparkException(
+      errorClass = "MALFORMED_RECORDS_DETECTED_IN_SCHEMA_INFERENCE_ERROR1",
+      messageParameters = Array(FailFastMode.name), e)
   }
 
   def malformedJSONError(): Throwable = {
-    new SparkException("Malformed JSON")
+    new SparkException(
+      errorClass = "MALFORMED_JSON_ERROR",
+      messageParameters = Array.empty, null)
   }
 
   def malformedRecordsDetectedInSchemaInferenceError(dataType: DataType): Throwable = {
     new SparkException(
-      s"""
-         |Malformed records are detected in schema inference.
-         |Parse Mode: ${FailFastMode.name}. Reasons: Failed to infer a common schema.
-         |Struct types are expected, but `${dataType.catalogString}` was found.
-       """.stripMargin.replaceAll("\n", " "))
+      errorClass = "MALFORMED_RECORDS_DETECTED_IN_SCHEMA_INFERENCE_ERROR2",
+      messageParameters = Array(FailFastMode.name, dataType.catalogString), null)
   }
 
   def cannotRewriteDomainJoinWithConditionsError(

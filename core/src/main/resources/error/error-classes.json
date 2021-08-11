@@ -3,6 +3,26 @@
     "message" : [ "Field name %s is ambiguous and has %s matching fields in the struct." ],
     "sqlState" : "42000"
   },
+  "CANNOT_CONVERT_COLUMN_TO_JSON_ERROR" : {
+    "message" : [ "Unable to convert column %s of type %s to JSON." ],
+    "sqlState" : "42000"
+  },
+  "CANNOT_GET_OUTER_POINTER_FOR_INNERCLASS_ERROR" : {
+    "message" : [ "Failed to get outer pointer for %s" ],
+    "sqlState" : "HY009"
+  },
+  "CLASS_HAS_UNEXPECTED_SERIALIZER_ERROR" : {
+    "message" : [ "class %s has unexpected serializer: %s" ],
+    "sqlState" : "40001"
+  },
+  "CONCAT_ARRAYS_WITH_ELEMENTS_EXCEED_LIMIT_ERROR" : {
+    "message" : [ "Unsuccessful try to concat arrays with %s elements due to exceeding the array size limit %s." ],
+    "sqlState" : "2202E"
+  },
+  "CREATE_ARRAY_WITH_ELEMENTS_EXCEED_LIMIT_ERROR" : {
+    "message" : [ "Unsuccessful try to create array with %s elements due to exceeding the array size limit %s." ],
+    "sqlState" : "42000"
+  },
   "DIVIDE_BY_ZERO" : {
     "message" : [ "divide by zero" ],
     "sqlState" : "22012"
@@ -10,6 +30,18 @@
   "DUPLICATE_KEY" : {
     "message" : [ "Found duplicate keys '%s'" ],
     "sqlState" : "23000"
+  },
+  "EXPRESSION_DECODING_ERROR" : {
+    "message" : [ "Error while decoding: %s\n%s" ],
+    "sqlState" : "42000"
+  },
+  "EXPRESSION_ENCODING_ERROR" : {
+    "message" : [ "Error while encoding: %s\n%s" ],
+    "sqlState" : "42000"
+  },
+  "FLATTEN_ARRAYS_WITH_ELEMENTS_EXCEED_LIMIT_ERROR" : {
+    "message" : [ "Unsuccessful try to flatten an array of arrays with %s elements due to exceeding the array size limit %s." ],
+    "sqlState" : "42000"
   },
   "GROUPING_COLUMN_MISMATCH" : {
     "message" : [ "Column of grouping (%s) can't be found in grouping columns %s" ],
@@ -29,8 +61,32 @@
     "message" : [ "Invalid pivot column '%s'. Pivot columns must be comparable." ],
     "sqlState" : "42000"
   },
+  "INITIAL_TYPE_NOT_TARGET_DATATYPES_ERROR" : {
+    "message" : [ "Initial type %s must be an %s, a %s or a %s" ],
+    "sqlState" : "42000"
+  },
+  "INITIAL_TYPE_NOT_TARGET_DATATYPE_ERROR" : {
+    "message" : [ "Initial type %s must be a %s" ],
+    "sqlState" : "42000"
+  },
   "INVALID_FIELD_NAME" : {
     "message" : [ "Field name %s is invalid: %s is not a struct." ],
+    "sqlState" : "42000"
+  },
+  "INVALID_INPUT_SYNTAX_FOR_BOOLEAN_ERROR" : {
+    "message" : [ "invalid input syntax for type boolean: %s" ],
+    "sqlState" : "42000"
+  },
+  "MALFORMED_JSON_ERROR" : {
+    "message" : [ "Malformed JSON" ],
+    "sqlState" : "42000"
+  },
+  "MALFORMED_RECORDS_DETECTED_IN_SCHEMA_INFERENCE_ERROR1" : {
+    "message" : [ "Malformed records are detected in schema inference. Parse Mode: %s." ],
+    "sqlState" : "42000"
+  },
+  "MALFORMED_RECORDS_DETECTED_IN_SCHEMA_INFERENCE_ERROR2" : {
+    "message" : [ "Malformed records are detected in schema inference. Parse Mode: %s. Reasons: Failed to infer a common schema. Struct types are expected, but `%s` was found." ],
     "sqlState" : "42000"
   },
   "MISSING_COLUMN" : {
@@ -57,8 +113,32 @@
     "message" : [ "The second argument of '%s' function needs to be an integer." ],
     "sqlState" : "22023"
   },
+  "SQL_ARRAY_INDEX_NOT_START_AT_ONE_ERROR" : {
+    "message" : [ "SQL array indices start at 1" ],
+    "sqlState" : "2202E"
+  },
   "UNABLE_TO_ACQUIRE_MEMORY" : {
     "message" : [ "Unable to acquire %s bytes of memory, got %s" ]
+  },
+  "UNEXPECTED_VALUE_FOR_LENGTH_IN_FUNCTION_ERROR" : {
+    "message" : [ "Unexpected value for length in function %s: length must be greater than or equal to 0." ],
+    "sqlState" : "22023"
+  },
+  "UNEXPECTED_VALUE_FOR_START_IN_FUNCTION_ERROR" : {
+    "message" : [ "Unexpected value for start in function %s: SQL array indices start at 1." ],
+    "sqlState" : "22023"
+  },
+  "UNION_ARRAY_WITH_ELEMENTS_EXCEED_LIMIT_ERROR" : {
+    "message" : [ "Unsuccessful try to union arrays with %s elements due to exceeding the array size limit %s." ],
+    "sqlState" : "42000"
+  },
+  "UNSUPPORTED_OPERAND_TYPE_FOR_SIZE_FUNCTION_ERROR" : {
+    "message" : [ "The size function doesn't support the operand type %s" ],
+    "sqlState" : "22013"
+  },
+  "USER_DEFINED_TYPE_NOT_ANNOTATED_AND_REGISTERED_ERROR" : {
+    "message" : [ "${%s} is not annotated with\nSQLUserDefinedType nor registered with UDTRegistration.}" ],
+    "sqlState" : "42000"
   },
   "WRITING_JOB_ABORTED" : {
     "message" : [ "Writing job aborted" ],

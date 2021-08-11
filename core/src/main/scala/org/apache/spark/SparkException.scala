@@ -79,3 +79,38 @@ class SparkArithmeticException(errorClass: String, messageParameters: Array[Stri
   override def getErrorClass: String = errorClass
   override def getSqlState: String = SparkThrowableHelper.getSqlState(errorClass)
 }
+
+/**
+ * Run time exception thrown from spark with an error class
+ */
+class SparkRuntimeException(errorClass: String, messageParameters: Array[String], cause: Throwable)
+  extends RuntimeException(SparkThrowableHelper.getMessage(errorClass, messageParameters))
+    with SparkThrowable {
+
+  override def getErrorClass: String = errorClass
+  override def getSqlState: String = SparkThrowableHelper.getSqlState(errorClass)
+}
+
+/**
+ *Unsupported Operation exception thrown from spark with an error class
+ */
+class SparkUnsupportedOperationException(errorClass: String, messageParameters: Array[String])
+  extends UnsupportedOperationException(
+    SparkThrowableHelper.getMessage(errorClass, messageParameters))
+    with SparkThrowable {
+
+  override def getErrorClass: String = errorClass
+  override def getSqlState: String = SparkThrowableHelper.getSqlState(errorClass)
+}
+
+/**
+ * Array Index out of bounds exception thrown from sparj with an error class
+ */
+class SparkArrayIndexOutOfBoundsException(errorClass: String, messageParameters: Array[String])
+  extends ArrayIndexOutOfBoundsException(
+    SparkThrowableHelper.getMessage(errorClass, messageParameters))
+    with SparkThrowable {
+
+  override def getErrorClass: String = errorClass
+  override def getSqlState: String = SparkThrowableHelper.getSqlState(errorClass)
+}
